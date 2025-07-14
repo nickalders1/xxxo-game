@@ -739,7 +739,7 @@ export default function GamePage() {
                       row.map((cell, colIndex) => (
                         <button
                           key={`${rowIndex}-${colIndex}`}
-                          className={`w-full aspect-square text-base sm:text-xl flex items-center justify-center border border-gray-600 ${getCellClass(
+                          className={`w-full h-full aspect-square text-base sm:text-xl flex items-center justify-center border border-gray-600 ${getCellClass(
                             rowIndex,
                             colIndex
                           )}`}
