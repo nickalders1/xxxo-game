@@ -618,7 +618,7 @@ export default function GamePage() {
     <div className="min-h-screen bg-[#0e1014] text-white">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4">
           <Link href="/">
             <Button
               variant="outline"
@@ -635,7 +635,7 @@ export default function GamePage() {
                 value={gameMode}
                 onValueChange={(value: "pvp" | "ai") => setGameMode(value)}
               >
-                <SelectTrigger className="w-40 bg-gray-800 border-gray-600 text-white">
+                <SelectTrigger className="w-full sm:w-40 bg-gray-800 border-gray-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
@@ -667,7 +667,7 @@ export default function GamePage() {
                     setAiDifficulty(value)
                   }
                 >
-                  <SelectTrigger className="w-32 bg-gray-800 border-gray-600 text-white">
+                  <SelectTrigger className="w-full sm:w-40 bg-gray-800 border-gray-600 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
