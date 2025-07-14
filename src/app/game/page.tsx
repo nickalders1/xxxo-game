@@ -703,7 +703,7 @@ export default function GamePage() {
           </Button>
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Game Board */}
           <div className="lg:col-span-2">
             <Card className="bg-gray-800 border-gray-700">
@@ -717,22 +717,24 @@ export default function GamePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-  <div className="grid grid-cols-5 gap-1 w-full max-w-[min(100%,400px)] mx-auto">
-    {gameState.board.map((row, rowIndex) =>
-      row.map((cell, colIndex) => (
-        <button
-          key={`${rowIndex}-${colIndex}`}
-          className={`aspect-square w-full text-white text-xl flex items-center justify-center border border-gray-600 ${getCellClass(rowIndex, colIndex)}`}
-          onClick={() => handleMove(rowIndex, colIndex)}
-          disabled={!gameState.gameActive || cell !== ""}
-        >
-          {cell}
-        </button>
-      ))
-    )}
-  </div>
-</CardContent>
-
+                <div className="grid grid-cols-5 gap-1 w-full max-w-[min(100%,400px)] mx-auto">
+                  {gameState.board.map((row, rowIndex) =>
+                    row.map((cell, colIndex) => (
+                      <button
+                        key={`${rowIndex}-${colIndex}`}
+                        className={`aspect-square w-full text-white text-xl flex items-center justify-center border border-gray-600 ${getCellClass(
+                          rowIndex,
+                          colIndex
+                        )}`}
+                        onClick={() => handleMove(rowIndex, colIndex)}
+                        disabled={!gameState.gameActive || cell !== ""}
+                      >
+                        {cell}
+                      </button>
+                    ))
+                  )}
+                </div>
+              </CardContent>
             </Card>
           </div>
 

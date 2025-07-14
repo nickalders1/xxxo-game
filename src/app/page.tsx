@@ -1,7 +1,13 @@
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Play, BookOpen, Trophy } from "lucide-react"
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Play, BookOpen, Trophy } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -11,7 +17,8 @@ export default function HomePage() {
         <div className="text-center mb-12">
           <h1 className="text-6xl font-bold mb-4 text-white">XXXo The Game</h1>
           <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Een strategische variant van tic-tac-toe op een 5x5 bord. Maak 4 of 5 op een rij om punten te scoren!
+            Een strategische variant van tic-tac-toe op een 5x5 bord. Maak 4 of
+            5 op een rij om punten te scoren!
           </p>
         </div>
 
@@ -24,11 +31,15 @@ export default function HomePage() {
                 <Play className="h-8 w-8 text-white" />
               </div>
               <CardTitle className="text-white text-xl">Spel Starten</CardTitle>
-              <CardDescription className="text-gray-300">Begin een nieuw spel tegen een vriend</CardDescription>
+              <CardDescription className="text-gray-300">
+                Begin een nieuw spel tegen een vriend
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/game" className="w-full">
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white">Nieuw Spel</Button>
+                <Button className="w-full bg-green-600 hover:bg-green-700 text-white">
+                  Nieuw Spel
+                </Button>
               </Link>
             </CardContent>
           </Card>
@@ -40,7 +51,9 @@ export default function HomePage() {
                 <BookOpen className="h-8 w-8 text-white" />
               </div>
               <CardTitle className="text-white text-xl">Spelregels</CardTitle>
-              <CardDescription className="text-gray-300">Leer hoe je XXXo The Game speelt</CardDescription>
+              <CardDescription className="text-gray-300">
+                Leer hoe je XXXo The Game speelt
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/rules" className="w-full">
@@ -61,7 +74,9 @@ export default function HomePage() {
                 <Trophy className="h-8 w-8 text-white" />
               </div>
               <CardTitle className="text-white text-xl">Statistieken</CardTitle>
-              <CardDescription className="text-gray-300">Bekijk je spelstatistieken en prestaties</CardDescription>
+              <CardDescription className="text-gray-300">
+                Bekijk je spelstatistieken en prestaties
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <Link href="/stats" className="w-full">
@@ -76,29 +91,11 @@ export default function HomePage() {
           </Card>
         </div>
 
-        {/* Game Preview */}
-        <div className="mt-16 text-center">
-          <h2 className="text-3xl font-bold mb-6 text-white">Spel Preview</h2>
-          <div className="bg-gray-800 rounded-lg p-6 max-w-md mx-auto">
-            <div className="grid grid-cols-5 gap-1 mb-4">
-              {Array.from({ length: 25 }, (_, i) => (
-                <div
-                  key={i}
-                  className="w-8 h-8 bg-gray-600 border border-gray-500 flex items-center justify-center text-sm"
-                >
-                  {i === 6 ? "X" : i === 12 ? "O" : i === 18 ? "X" : ""}
-                </div>
-              ))}
-            </div>
-            <p className="text-gray-300 text-sm">5x5 bord met strategische gameplay</p>
-          </div>
-        </div>
-
         {/* Footer */}
         <footer className="mt-16 text-center text-gray-400">
           <p>&copy; 2024 XXXo The Game. Veel plezier met spelen!</p>
         </footer>
       </div>
     </div>
-  )
+  );
 }
