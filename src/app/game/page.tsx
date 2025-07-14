@@ -716,22 +716,23 @@ export default function GamePage() {
                     : statusMessage}
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex justify-center">
-                <div className="grid grid-cols-5 gap-1">
-                  {gameState.board.map((row, rowIndex) =>
-                    row.map((cell, colIndex) => (
-                      <button
-                        key={`${rowIndex}-${colIndex}`}
-                        className={getCellClass(rowIndex, colIndex)}
-                        onClick={() => handleMove(rowIndex, colIndex)}
-                        disabled={!gameState.gameActive || cell !== ""}
-                      >
-                        {cell}
-                      </button>
-                    ))
-                  )}
-                </div>
-              </CardContent>
+              <CardContent className="p-4">
+  <div className="grid grid-cols-5 gap-1 w-full max-w-[min(100%,400px)] mx-auto">
+    {gameState.board.map((row, rowIndex) =>
+      row.map((cell, colIndex) => (
+        <button
+          key={`${rowIndex}-${colIndex}`}
+          className={`aspect-square w-full bg-gray-700 text-white text-xl flex items-center justify-center border border-gray-600 ${getCellClass(rowIndex, colIndex)}`}
+          onClick={() => handleMove(rowIndex, colIndex)}
+          disabled={!gameState.gameActive || cell !== ""}
+        >
+          {cell}
+        </button>
+      ))
+    )}
+  </div>
+</CardContent>
+
             </Card>
           </div>
 
