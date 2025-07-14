@@ -122,15 +122,51 @@ export default function GamePage() {
       { r: 1, c: 1 },
       { r: 1, c: -1 },
     ];
+
     let totalPoints = 0;
 
     for (const { r, c } of directions) {
-      let count = 1;
-      count += countDirection(board, row, col, r, c, player);
-      count += countDirection(board, row, col, -r, -c, player);
+      let line = [{ row, col }];
 
-      if (count === 4) totalPoints += 1;
-      else if (count === 5) totalPoints += 2;
+      // Check achteruit
+      for (let i = 1; i < 5; i++) {
+        const newRow = row - r * i;
+        const newCol = col - c * i;
+        if (
+          newRow >= 0 &&
+          newRow < BOARD_SIZE &&
+          newCol >= 0 &&
+          newCol < BOARD_SIZE &&
+          board[newRow][newCol] === player
+        ) {
+          line.unshift({ row: newRow, col: newCol });
+        } else break;
+      }
+
+      // Check vooruit
+      for (let i = 1; i < 5; i++) {
+        const newRow = row + r * i;
+        const newCol = col + c * i;
+        if (
+          newRow >= 0 &&
+          newRow < BOARD_SIZE &&
+          newCol >= 0 &&
+          newCol < BOARD_SIZE &&
+          board[newRow][newCol] === player
+        ) {
+          line.push({ row: newRow, col: newCol });
+        } else break;
+      }
+
+      // Als deze lijn precies 4 is: 1 punt
+      if (line.length === 4) {
+        totalPoints += 1;
+      }
+
+      // Als deze lijn precies 5 is: 1 extra punt (bovenop de 4)
+      if (line.length === 5) {
+        totalPoints += 1;
+      }
     }
 
     return totalPoints;
