@@ -635,7 +635,7 @@ export default function GamePage() {
                 value={gameMode}
                 onValueChange={(value: "pvp" | "ai") => setGameMode(value)}
               >
-                <SelectTrigger className="w-full sm:w-40 bg-gray-800 border-gray-600 text-white">
+                <SelectTrigger className="w-full sm:w-50 bg-gray-800 border-gray-600 text-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-gray-800 border-gray-600">
@@ -667,7 +667,7 @@ export default function GamePage() {
                     setAiDifficulty(value)
                   }
                 >
-                  <SelectTrigger className="w-full sm:w-40 bg-gray-800 border-gray-600 text-white">
+                  <SelectTrigger className="w-full sm:w-50 bg-gray-800 border-gray-600 text-white">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="bg-gray-800 border-gray-600">
@@ -717,7 +717,7 @@ export default function GamePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-                <div className="grid grid-cols-5 gap-1 w-full max-w-[min(100%,400px)] mx-auto">
+                <div className="grid grid-cols-5 gap-[2vw] p-2 w-full max-w-xs sm:max-w-sm md:max-w-md mx-auto">
                   {gameState.board.map((row, rowIndex) =>
                     row.map((cell, colIndex) => (
                       <button
