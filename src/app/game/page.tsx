@@ -703,9 +703,9 @@ export default function GamePage() {
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col gap-8">
           {/* Game Board */}
-          <div className="lg:col-span-2">
+          <div className="w-full">
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
                 <CardTitle className="text-center text-white">
@@ -717,6 +717,22 @@ export default function GamePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
+                {/* Overlay bij einde spel */}
+                {winner && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center">
+                    <div className="bg-black/80 text-white rounded-xl px-6 py-5 shadow-xl text-center max-w-xs w-full">
+                      <h2 className="text-xl font-semibold mb-4">{winner}</h2>
+                      <Button
+                        onClick={initializeGame}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Play Again
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex justify-center">
                   <div className="grid grid-cols-5 gap-2 w-full max-w-[90vw] sm:max-w-[400px] aspect-square">
                     {gameState.board.map((row, rowIndex) =>
@@ -741,7 +757,7 @@ export default function GamePage() {
           </div>
 
           {/* Score Panel */}
-          <div className="space-y-6">
+          <div className="w-full space-y-6">
             {/* Current Game Score */}
             <Card className="bg-gray-800 border-gray-700">
               <CardHeader>
