@@ -717,12 +717,12 @@ export default function GamePage() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-4">
-  <div className="grid grid-cols-5 gap-1 w-full max-w-[min(100%,400px)] mx-auto">
+  <div className="grid grid-cols-5 gap-1 w-full max-w-[min(100%,400px)] mx-auto bg-dark-gray-700">
     {gameState.board.map((row, rowIndex) =>
       row.map((cell, colIndex) => (
         <button
           key={`${rowIndex}-${colIndex}`}
-          className={`aspect-square w-full text-white text-xl flex items-center justify-center border border-gray-800 ${getCellClass(rowIndex, colIndex)}`}
+          className={`aspect-square w-full text-white text-xl flex items-center justify-center border border-gray-600 ${getCellClass(rowIndex, colIndex)}`}
           onClick={() => handleMove(rowIndex, colIndex)}
           disabled={!gameState.gameActive || cell !== ""}
         >
