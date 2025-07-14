@@ -720,7 +720,7 @@ export default function GamePage() {
                 {/* Overlay bij einde spel */}
                 {winner && (
                   <div className="absolute inset-0 z-10 flex items-center justify-center">
-                    <div className="bg-black/80 text-white rounded-xl px-6 py-5 shadow-xl text-center max-w-xs w-full">
+                    <div className="bg-black/80 border border-white/20 text-white rounded-xl px-12 py-5 shadow-xl text-center max-w-xs w-full">
                       <h2 className="text-xl font-semibold mb-4">{winner}</h2>
                       <Button
                         onClick={initializeGame}
@@ -739,7 +739,7 @@ export default function GamePage() {
                       row.map((cell, colIndex) => (
                         <button
                           key={`${rowIndex}-${colIndex}`}
-                          className={`w-full h-full text-base sm:text-xl flex items-center justify-center border border-gray-600 ${getCellClass(
+                          className={`w-full aspect-square text-base sm:text-xl flex items-center justify-center border border-gray-600 ${getCellClass(
                             rowIndex,
                             colIndex
                           )}`}
