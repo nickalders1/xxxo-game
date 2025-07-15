@@ -769,7 +769,7 @@ export default function GamePage() {
                   </div>
                 )}
 
-                <div className="flex justify-center">
+                <div className="flex justify-center text-white">
                   <div className="grid grid-cols-5 gap-2 w-full max-w-[90vw] sm:max-w-[400px] aspect-square">
                     {gameState.board.map((row, rowIndex) =>
                       row.map((cell, colIndex) => (
