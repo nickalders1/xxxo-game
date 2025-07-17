@@ -42,7 +42,6 @@ export default function GamePage() {
     bonusTurn: false,
     totalScore: { X: 0, O: 0 },
     pointLines: new Set(),
-    pointLines: updatedPointLines,
   });
 
   const [statusMessage, setStatusMessage] = useState("Player X's turn");
@@ -114,66 +113,165 @@ export default function GamePage() {
     return count;
   };
 
- const checkForPoints = (
-  board: string[][],
-  row: number,
-  col: number,
-  player: string,
-  existingLines: Set<string>
-) => {
-  const directions = [
-    { r: 0, c: 1 },
-    { r: 1, c: 0 },
-    { r: 1, c: 1 },
-    { r: 1, c: -1 },
-  ];
+ "use client";
 
-  let totalPoints = 0;
-  const newLines: Set<string> = new Set();
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Home, RotateCcw, Bot, User } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-  for (const { r, c } of directions) {
-    let line = [{ row, col }];
+const BOARD_SIZE = 5;
 
-    for (let i = 1; i < 5; i++) {
-      const newRow = row - r * i;
-      const newCol = col - c * i;
-      if (
-        newRow >= 0 &&
-        newRow < BOARD_SIZE &&
-        newCol >= 0 &&
-        newCol < BOARD_SIZE &&
-        board[newRow][newCol] === player
-      ) {
-        line.unshift({ row: newRow, col: newCol });
-      } else break;
+export default function GamePage() {
+  const [gameState, setGameState] = useState({
+    board: Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill("")),
+    currentPlayer: "X",
+    gameActive: true,
+    score: { X: 0, O: 0 },
+    lastMove: { X: null, O: null },
+    bonusTurn: false,
+    totalScore: { X: 0, O: 0 },
+    pointLines: new Set(),
+  });
+
+  const [statusMessage, setStatusMessage] = useState("Player X's turn");
+  const [winner, setWinner] = useState(null);
+  const [gameMode, setGameMode] = useState("pvp");
+  const [aiDifficulty, setAiDifficulty] = useState("medium");
+  const [isAiThinking, setIsAiThinking] = useState(false);
+
+  useEffect(() => {
+    if (gameMode === "ai" && gameState.currentPlayer === "O" && gameState.gameActive && !isAiThinking) {
+      makeAiMove();
     }
+  }, [gameState.currentPlayer, gameState.gameActive, gameMode, isAiThinking]);
 
-    for (let i = 1; i < 5; i++) {
-      const newRow = row + r * i;
-      const newCol = col + c * i;
-      if (
-        newRow >= 0 &&
-        newRow < BOARD_SIZE &&
-        newCol >= 0 &&
-        newCol < BOARD_SIZE &&
-        board[newRow][newCol] === player
-      ) {
-        line.push({ row: newRow, col: newCol });
-      } else break;
-    }
+  const initializeGame = () => {
+    setGameState((prev) => ({
+      ...prev,
+      board: Array(BOARD_SIZE).fill(null).map(() => Array(BOARD_SIZE).fill("")),
+      currentPlayer: "X",
+      gameActive: true,
+      score: { X: 0, O: 0 },
+      lastMove: { X: null, O: null },
+      bonusTurn: false,
+      pointLines: new Set(),
+    }));
+    setStatusMessage(gameMode === "ai" ? "Your turn (X)" : "Player X's turn");
+    setWinner(null);
+    setIsAiThinking(false);
+  };
 
-    if (line.length >= 4) {
-      const key = line.map(p => `${p.row},${p.col}`).sort().join("|");
-      if (!existingLines.has(key)) {
-        if (line.length === 4) totalPoints += 1;
-        else if (line.length >= 5) totalPoints += 1; // Alleen de extra 1 punt bovenop de eerdere 4-op-een-rij
-        newLines.add(key);
+  const checkForPoints = (board, row, col, player, existingLines) => {
+    const directions = [
+      { r: 0, c: 1 },
+      { r: 1, c: 0 },
+      { r: 1, c: 1 },
+      { r: 1, c: -1 },
+    ];
+
+    let totalPoints = 0;
+    const newLines = new Set();
+
+    for (const { r, c } of directions) {
+      let line = [{ row, col }];
+
+      for (let i = 1; i < 5; i++) {
+        const newRow = row - r * i;
+        const newCol = col - c * i;
+        if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE && board[newRow][newCol] === player) {
+          line.unshift({ row: newRow, col: newCol });
+        } else break;
+      }
+
+      for (let i = 1; i < 5; i++) {
+        const newRow = row + r * i;
+        const newCol = col + c * i;
+        if (newRow >= 0 && newRow < BOARD_SIZE && newCol >= 0 && newCol < BOARD_SIZE && board[newRow][newCol] === player) {
+          line.push({ row: newRow, col: newCol });
+        } else break;
+      }
+
+      if (line.length >= 4) {
+        const key = line.map(p => `${p.row},${p.col}`).sort().join("|");
+        if (!existingLines.has(key)) {
+          totalPoints += 1;
+          newLines.add(key);
+        }
       }
     }
-  }
 
-  return { totalPoints, newLines };
-};
+    return { totalPoints, newLines };
+  };
+
+  const handleMove = (row, col) => {
+    if (!gameState.gameActive || gameState.board[row][col] !== "") return;
+
+    const newBoard = gameState.board.map(r => [...r]);
+    newBoard[row][col] = gameState.currentPlayer;
+
+    const { totalPoints, newLines } = checkForPoints(
+      newBoard,
+      row,
+      col,
+      gameState.currentPlayer,
+      gameState.pointLines
+    );
+
+    const updatedPointLines = new Set(gameState.pointLines);
+    newLines.forEach(line => updatedPointLines.add(line));
+
+    const newScore = { ...gameState.score };
+    newScore[gameState.currentPlayer] += totalPoints;
+
+    const newLastMove = { ...gameState.lastMove, [gameState.currentPlayer]: { row, col } };
+    const nextPlayer = gameState.currentPlayer === "X" ? "O" : "X";
+
+    setGameState(prev => ({
+      ...prev,
+      board: newBoard,
+      score: newScore,
+      lastMove: newLastMove,
+      currentPlayer: nextPlayer,
+      pointLines: updatedPointLines,
+    }));
+
+    setStatusMessage(`Player ${nextPlayer}'s turn`);
+  };
+
+  return (
+    <div className="min-h-screen p-6 text-white">
+      <h1 className="text-3xl font-bold mb-4">XXXo The Game</h1>
+      <p>{statusMessage}</p>
+      <div className="grid grid-cols-5 gap-2 mt-6">
+        {gameState.board.map((row, rowIndex) =>
+          row.map((cell, colIndex) => (
+            <button
+              key={`${rowIndex}-${colIndex}`}
+              className="w-16 h-16 bg-gray-600 text-2xl font-bold"
+              onClick={() => handleMove(rowIndex, colIndex)}
+              disabled={!gameState.gameActive || cell !== ""}
+            >
+              {cell}
+            </button>
+          ))
+        )}
+      </div>
+      <div className="mt-4">
+        <p>Player X: {gameState.score.X}</p>
+        <p>Player O: {gameState.score.O}</p>
+      </div>
+    </div>
+  );
+}
 
   const anyPotentialPoints = (
     board: string[][],
