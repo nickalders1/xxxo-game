@@ -111,63 +111,63 @@ export default function GamePage() {
   };
 
   const checkForPoints = (
-    board: string[][],
-    row: number,
-    col: number,
-    player: string
-  ) => {
-    const directions = [
-      { r: 0, c: 1 },
-      { r: 1, c: 0 },
-      { r: 1, c: 1 },
-      { r: 1, c: -1 },
-    ];
+  board: string[][],
+  row: number,
+  col: number,
+  player: string
+) => {
+  const directions = [
+    { r: 0, c: 1 },
+    { r: 1, c: 0 },
+    { r: 1, c: 1 },
+    { r: 1, c: -1 },
+  ];
 
-    let totalPoints = 0;
+  let totalPoints = 0;
 
-    for (const { r, c } of directions) {
-      let line = [{ row, col }];
+  for (const { r, c } of directions) {
+    let line = [{ row, col }];
 
-      // Check achteruit
-      for (let i = 1; i < 5; i++) {
-        const newRow = row - r * i;
-        const newCol = col - c * i;
-        if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          board[newRow][newCol] === player
-        ) {
-          line.unshift({ row: newRow, col: newCol });
-        } else break;
-      }
+    // Check achteruit
+    for (let i = 1; i < 5; i++) {
+      const newRow = row - r * i;
+      const newCol = col - c * i;
+      if (
+        newRow >= 0 &&
+        newRow < BOARD_SIZE &&
+        newCol >= 0 &&
+        newCol < BOARD_SIZE &&
+        board[newRow][newCol] === player
+      ) {
+        line.unshift({ row: newRow, col: newCol });
+      } else break;
+    }
 
-      // Check vooruit
-      for (let i = 1; i < 5; i++) {
-        const newRow = row + r * i;
-        const newCol = col + c * i;
-        if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          board[newRow][newCol] === player
-        ) {
-          line.push({ row: newRow, col: newCol });
-        } else break;
-      }
+    // Check vooruit
+    for (let i = 1; i < 5; i++) {
+      const newRow = row + r * i;
+      const newCol = col + c * i;
+      if (
+        newRow >= 0 &&
+        newRow < BOARD_SIZE &&
+        newCol >= 0 &&
+        newCol < BOARD_SIZE &&
+        board[newRow][newCol] === player
+      ) {
+        line.push({ row: newRow, col: newCol });
+      } else break;
+    }
 
-      // Als deze lijn precies 4 is: 1 punt
-      if (line.length === 4) {
-  totalPoints += 1;
-} else if (line.length === 5) {
-  totalPoints += 2; // 1 voor 4 + 1 bonus voor 5
-}
+    if (line.length === 4) {
+      totalPoints += 1;
+    } else if (line.length >= 5) {
+      totalPoints += 2;
+    }
+  }
 
+  return totalPoints;
+};
 
-    return totalPoints;
-  };
 
   const anyPotentialPoints = (
     board: string[][],
