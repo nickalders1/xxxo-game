@@ -27,6 +27,7 @@ interface GameState {
   };
   bonusTurn: boolean;
   totalScore: { X: number; O: number };
+  pointLines: Set<string>;
 }
 
 export default function GamePage() {
@@ -40,6 +41,8 @@ export default function GamePage() {
     lastMove: { X: null, O: null },
     bonusTurn: false,
     totalScore: { X: 0, O: 0 },
+    pointLines: new Set(),
+    pointLines: updatedPointLines,
   });
 
   const [statusMessage, setStatusMessage] = useState("Player X's turn");
@@ -73,6 +76,7 @@ export default function GamePage() {
       score: { X: 0, O: 0 },
       lastMove: { X: null, O: null },
       bonusTurn: false,
+      pointLines: updatedPointLines,
     }));
     setStatusMessage(gameMode === "ai" ? "Your turn (X)" : "Player X's turn");
     setWinner(null);
@@ -110,11 +114,12 @@ export default function GamePage() {
     return count;
   };
 
-  const checkForPoints = (
+ const checkForPoints = (
   board: string[][],
   row: number,
   col: number,
-  player: string
+  player: string,
+  existingLines: Set<string>
 ) => {
   const directions = [
     { r: 0, c: 1 },
@@ -124,11 +129,11 @@ export default function GamePage() {
   ];
 
   let totalPoints = 0;
+  const newLines: Set<string> = new Set();
 
   for (const { r, c } of directions) {
     let line = [{ row, col }];
 
-    // Check achteruit
     for (let i = 1; i < 5; i++) {
       const newRow = row - r * i;
       const newCol = col - c * i;
@@ -143,7 +148,6 @@ export default function GamePage() {
       } else break;
     }
 
-    // Check vooruit
     for (let i = 1; i < 5; i++) {
       const newRow = row + r * i;
       const newCol = col + c * i;
@@ -158,16 +162,18 @@ export default function GamePage() {
       } else break;
     }
 
-    if (line.length === 4) {
-      totalPoints += 1;
-    } else if (line.length >= 5) {
-      totalPoints += 2;
+    if (line.length >= 4) {
+      const key = line.map(p => `${p.row},${p.col}`).sort().join("|");
+      if (!existingLines.has(key)) {
+        if (line.length === 4) totalPoints += 1;
+        else if (line.length >= 5) totalPoints += 1; // Alleen de extra 1 punt bovenop de eerdere 4-op-een-rij
+        newLines.add(key);
+      }
     }
   }
 
-  return totalPoints;
+  return { totalPoints, newLines };
 };
-
 
   const anyPotentialPoints = (
     board: string[][],
@@ -493,6 +499,7 @@ export default function GamePage() {
       ...prev,
       totalScore: newTotalScore,
       gameActive: false,
+      pointLines: updatedPointLines,
     }));
   };
 
@@ -520,7 +527,17 @@ export default function GamePage() {
     const newBoard = gameState.board.map((row) => [...row]);
     newBoard[row][col] = gameState.currentPlayer;
 
-    const points = checkForPoints(newBoard, row, col, gameState.currentPlayer);
+    const { totalPoints, newLines } = checkForPoints(
+  newBoard,
+  row,
+  col,
+  gameState.currentPlayer,
+  gameState.pointLines
+);
+
+    const updatedPointLines = new Set(gameState.pointLines);
+newLines.forEach((line) => updatedPointLines.add(line));
+
     const newScore = { ...gameState.score };
     newScore[gameState.currentPlayer] += points;
 
@@ -575,6 +592,7 @@ export default function GamePage() {
         score: newScore,
         lastMove: newLastMove,
         gameActive: false,
+        pointLines: updatedPointLines,
       }));
       declareWinner(newScore);
       return;
@@ -588,6 +606,7 @@ export default function GamePage() {
         lastMove: newLastMove,
         bonusTurn: true,
         currentPlayer: "O",
+        pointLines: updatedPointLines,
       }));
       setStatusMessage("Player O's bonus turn");
       return;
@@ -600,6 +619,7 @@ export default function GamePage() {
         score: newScore,
         lastMove: newLastMove,
         gameActive: false,
+        pointLines: updatedPointLines,
       }));
       declareWinner(newScore);
       return;
@@ -612,6 +632,7 @@ export default function GamePage() {
       score: newScore,
       lastMove: newLastMove,
       currentPlayer: nextPlayer,
+      pointLines: updatedPointLines,
     }));
     setStatusMessage(
       gameMode === "ai"
@@ -623,7 +644,7 @@ export default function GamePage() {
   };
 
   const resetTotalScore = () => {
-    setGameState((prev) => ({ ...prev, totalScore: { X: 0, O: 0 } }));
+    setGameState((prev) => ({ ...prev, pointLines: updatedPointLines, totalScore: { X: 0, O: 0 } }));
   };
 
   const getCellClass = (row: number, col: number) => {
