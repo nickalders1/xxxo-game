@@ -756,7 +756,7 @@ export default function GamePage() {
                 {/* Overlay bij einde spel */}
                 {winner && (
                   <div className="absolute inset-0 z-10 flex items-center justify-center">
-                    <div className="bg-black/60 border border-white/20 text-white rounded-xl px-12 py-5 shadow-xl text-center max-w-xs w-full">
+                    <div className="bg-black/80 border border-white/20 text-white rounded-xl px-12 py-5 shadow-xl text-center max-w-xs w-full">
                       <h2 className="text-xl font-semibold mb-4">{winner}</h2>
                       <Button
                         onClick={initializeGame}
@@ -769,7 +769,7 @@ export default function GamePage() {
                   </div>
                 )}
 
-                <div className="flex justify-center text-white">
+                <div className="flex justify-center">
                   <div className="grid grid-cols-5 gap-2 w-full max-w-[90vw] sm:max-w-[400px] aspect-square">
                     {gameState.board.map((row, rowIndex) =>
                       row.map((cell, colIndex) => (
