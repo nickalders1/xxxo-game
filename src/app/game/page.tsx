@@ -113,8 +113,6 @@ export default function GamePage() {
     return count;
   };
 
- "use client";
-
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
