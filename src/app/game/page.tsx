@@ -128,41 +128,33 @@ export default function GamePage() {
   }
 
   return (
-    <div className="min-h-screen p-6 text-white bg-[#0e1014]">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">XXXo The Game</h1>
-        <Link href="/">
-          <Button variant="outline">
-            <Home className="mr-2 h-4 w-4" />
-            Home
-          </Button>
-        </Link>
-      </div>
+  <div className="min-h-screen bg-[#0e1014] text-white flex flex-col items-center justify-center px-4 py-8">
+    <h1 className="text-3xl font-bold mb-4 text-center">XXXo The Game</h1>
+    <p className="mb-4">{statusMessage}</p>
 
-      <p className="mb-4">{statusMessage}</p>
-
-      <div className="grid grid-cols-5 gap-2">
-        {gameState.board.map((row, rowIndex) =>
-          row.map((cell, colIndex) => (
-            <button
-              key={`${rowIndex}-${colIndex}`}
-              className={getCellClass(rowIndex, colIndex)}
-              onClick={() => handleMove(rowIndex, colIndex)}
-              disabled={!gameState.gameActive || cell !== ""}
-            >
-              {cell}
-            </button>
-          ))
-        )}
-      </div>
-
-      <div className="mt-4 space-y-2">
-        <p>Player X: {gameState.score.X}</p>
-        <p>Player O: {gameState.score.O}</p>
-        <Button onClick={resetGame} className="mt-4 bg-blue-600 hover:bg-blue-700">
-          New Game
-        </Button>
-      </div>
+    <div className="grid grid-cols-5 gap-2 mb-6">
+      {gameState.board.map((row, rowIndex) =>
+        row.map((cell, colIndex) => (
+          <button
+            key={`${rowIndex}-${colIndex}`}
+            className="w-16 h-16 bg-gray-600 text-2xl font-bold flex items-center justify-center hover:bg-gray-700 transition-colors"
+            onClick={() => handleMove(rowIndex, colIndex)}
+            disabled={!gameState.gameActive || cell !== ""}
+          >
+            {cell}
+          </button>
+        ))
+      )}
     </div>
-  )
+
+    <div className="text-sm space-y-2 text-center">
+      <p>Player X: {gameState.score.X}</p>
+      <p>Player O: {gameState.score.O}</p>
+    </div>
+
+    <Button onClick={resetGame} className="mt-4 bg-blue-600 hover:bg-blue-700">
+      New Game
+    </Button>
+  </div>
+)
 }
