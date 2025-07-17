@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  experimental: {
+    allowedDevOrigins: ["https://xxxo.bothosts.com"],
+  },
 };
 
 export default nextConfig;
