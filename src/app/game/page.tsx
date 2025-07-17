@@ -160,14 +160,11 @@ export default function GamePage() {
 
       // Als deze lijn precies 4 is: 1 punt
       if (line.length === 4) {
-        totalPoints += 1;
-      }
+  totalPoints += 1;
+} else if (line.length === 5) {
+  totalPoints += 2; // 1 voor 4 + 1 bonus voor 5
+}
 
-      // Als deze lijn precies 5 is: 1 extra punt (bovenop de 4)
-      if (line.length === 5) {
-        totalPoints += 1;
-      }
-    }
 
     return totalPoints;
   };
