@@ -50,7 +50,7 @@ function isNextToLastMove(row, col, player, lastMove) {
   return Math.abs(row - last.row) <= 1 && Math.abs(col - last.col) <= 1;
 }
 
-// Calculate total score for a player on the entire board
+// SUPER SIMPLE scoring - find all unique lines and score them
 function calculateTotalScore(board, player) {
   const directions = [
     { r: 0, c: 1 }, // horizontal
@@ -59,64 +59,46 @@ function calculateTotalScore(board, player) {
     { r: 1, c: -1 }, // diagonal /
   ];
 
+  const uniqueLines = new Set();
   let totalScore = 0;
-  const processedCells = new Set();
 
-  for (let row = 0; row < BOARD_SIZE; row++) {
-    for (let col = 0; col < BOARD_SIZE; col++) {
-      if (board[row][col] !== player) continue;
-
-      const cellKey = `${row},${col}`;
-      if (processedCells.has(cellKey)) continue;
-
+  // Check every possible starting position
+  for (let startRow = 0; startRow < BOARD_SIZE; startRow++) {
+    for (let startCol = 0; startCol < BOARD_SIZE; startCol++) {
       for (const { r, c } of directions) {
-        // Find the start of the line in this direction
-        let startRow = row;
-        let startCol = col;
-
-        // Go backwards to find the actual start of the line
-        while (
-          startRow - r >= 0 &&
-          startRow - r < BOARD_SIZE &&
-          startCol - c >= 0 &&
-          startCol - c < BOARD_SIZE &&
-          board[startRow - r][startCol - c] === player
-        ) {
-          startRow -= r;
-          startCol -= c;
-        }
-
-        // Now count forward from the start
+        // Count consecutive pieces from this starting position
         let count = 0;
-        let currentRow = startRow;
-        let currentCol = startCol;
-        const lineCells = [];
+        let row = startRow;
+        let col = startCol;
+        const positions = [];
 
         while (
-          currentRow >= 0 &&
-          currentRow < BOARD_SIZE &&
-          currentCol >= 0 &&
-          currentCol < BOARD_SIZE &&
-          board[currentRow][currentCol] === player
+          row >= 0 &&
+          row < BOARD_SIZE &&
+          col >= 0 &&
+          col < BOARD_SIZE &&
+          board[row][col] === player
         ) {
           count++;
-          lineCells.push(`${currentRow},${currentCol}`);
-          currentRow += r;
-          currentCol += c;
+          positions.push(`${row},${col}`);
+          row += r;
+          col += c;
         }
 
-        // Only score if we have 4+ in a row and this line contains our current cell
-        if (count >= 4 && lineCells.includes(cellKey)) {
-          // Mark all cells in this line as processed
-          lineCells.forEach((cell) => processedCells.add(cell));
+        // Only score lines of 4+ pieces
+        if (count >= 4) {
+          // Create unique identifier for this line
+          const lineId = `${r},${c}:${positions.sort().join("-")}`;
 
-          if (count >= 5) {
-            totalScore += 2; // 2 points for 5+ in a row
-          } else {
-            totalScore += 1; // 1 point for 4 in a row
+          if (!uniqueLines.has(lineId)) {
+            uniqueLines.add(lineId);
+
+            if (count >= 5) {
+              totalScore += 2; // 2 points for 5+ in a row
+            } else {
+              totalScore += 1; // 1 point for exactly 4 in a row
+            }
           }
-
-          break; // Don't check other directions for this cell
         }
       }
     }
