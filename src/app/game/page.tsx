@@ -110,65 +110,79 @@ export default function GamePage() {
     return count;
   };
 
+  // 🔧 DEBUG: Verbeterde checkForPoints functie met logging
   const checkForPoints = (
     board: string[][],
     row: number,
     col: number,
     player: string
   ) => {
+    console.log(`🎯 Checking points for ${player} at (${row}, ${col})`);
+
     const directions = [
-      { r: 0, c: 1 },
-      { r: 1, c: 0 },
-      { r: 1, c: 1 },
-      { r: 1, c: -1 },
+      { r: 0, c: 1, name: "horizontal" }, // horizontal
+      { r: 1, c: 0, name: "vertical" }, // vertical
+      { r: 1, c: 1, name: "diagonal \\" }, // diagonal \
+      { r: 1, c: -1, name: "diagonal /" }, // diagonal /
     ];
 
     let totalPoints = 0;
 
-    for (const { r, c } of directions) {
-      let line = [{ row, col }];
+    for (const { r, c, name } of directions) {
+      let count = 1; // Start met 1 voor de huidige positie
 
-      // Check achteruit
+      // Tel naar achteren
+      let backwardCount = 0;
       for (let i = 1; i < 5; i++) {
         const newRow = row - r * i;
         const newCol = col - c * i;
         if (
           newRow >= 0 &&
           newRow < BOARD_SIZE &&
-          newCol >= 0 &&
           newCol < BOARD_SIZE &&
           board[newRow][newCol] === player
         ) {
-          line.unshift({ row: newRow, col: newCol });
+          backwardCount++;
         } else break;
       }
 
-      // Check vooruit
+      // Tel naar voren
+      let forwardCount = 0;
       for (let i = 1; i < 5; i++) {
         const newRow = row + r * i;
         const newCol = col + c * i;
         if (
           newRow >= 0 &&
           newRow < BOARD_SIZE &&
-          newCol >= 0 &&
           newCol < BOARD_SIZE &&
           board[newRow][newCol] === player
         ) {
-          line.push({ row: newRow, col: newCol });
+          forwardCount++;
         } else break;
       }
 
-      // Als deze lijn precies 4 is: 1 punt
-      if (line.length === 4) {
-        totalPoints += 1;
+      count = 1 + backwardCount + forwardCount;
+
+      console.log(
+        `  ${name}: backward=${backwardCount}, forward=${forwardCount}, total=${count}`
+      );
+
+      // Geef punten voor deze richting
+      let directionPoints = 0;
+      if (count >= 5) {
+        directionPoints = 2;
+        console.log(`  ✅ ${name}: 5 op een rij = 2 punten`);
+      } else if (count >= 4) {
+        directionPoints = 1;
+        console.log(`  ✅ ${name}: 4 op een rij = 1 punt`);
+      } else {
+        console.log(`  ❌ ${name}: ${count} op een rij = 0 punten`);
       }
 
-      // Als deze lijn precies 5 is: 1 extra punt (bovenop de 4)
-      if (line.length === 5) {
-        totalPoints += 1;
-      }
+      totalPoints += directionPoints;
     }
 
+    console.log(`🏆 Total points for this move: ${totalPoints}`);
     return totalPoints;
   };
 
@@ -382,7 +396,8 @@ export default function GamePage() {
     const last = lastMove[player];
 
     for (let row = 0; row < BOARD_SIZE; row++) {
-      for (let col = 0; col < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        // 🔧 FIX: was row++ instead of col++
         if (
           board[row][col] === "" &&
           (!last ||
