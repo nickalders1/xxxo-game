@@ -139,14 +139,16 @@ function GameContent() {
         } else break;
       }
 
-      // Award points based on line length
+      // Now check what was there BEFORE this move
       if (count >= 5) {
-        // Check if there was already a 4-in-a-row before this move
+        // Create board without our new piece
         const boardBefore = board.map((r) => [...r]);
-        boardBefore[row][col] = ""; // Remove the piece we just placed
+        boardBefore[row][col] = "";
 
-        let countBefore = 0;
         // Count the same line without our piece
+        let countBefore = 0;
+
+        // Count forward from our position
         for (let i = 1; i < 5; i++) {
           const newRow = row + r * i;
           const newCol = col + c * i;
@@ -161,6 +163,7 @@ function GameContent() {
           } else break;
         }
 
+        // Count backward from our position
         for (let i = 1; i < 5; i++) {
           const newRow = row - r * i;
           const newCol = col - c * i;
@@ -175,8 +178,11 @@ function GameContent() {
           } else break;
         }
 
-        // If there were exactly 4 pieces before, this is extending 4->5 (1 point)
-        // If there were less than 4 pieces before, this is a new 5-in-a-row (2 points)
+        console.log(
+          `Direction ${r},${c}: count=${count}, countBefore=${countBefore}`
+        );
+
+        // Award points based on what was there before
         if (countBefore === 4) {
           totalPoints += 1;
           console.log(
