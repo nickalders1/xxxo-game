@@ -96,11 +96,7 @@ function GameContent() {
     col: number,
     player: string
   ) => {
-    // ZEER DUIDELIJKE DEBUG
-    console.log(
-      `🚨🚨🚨 CHECKFORPOINTS CALLED FOR ${player} AT (${row}, ${col}) 🚨🚨🚨`
-    );
-    alert(`Checking points for ${player} at (${row}, ${col})`); // Zeer zichtbaar!
+    console.log(`🎯 Checking points for ${player} at (${row}, ${col})`);
 
     const directions = [
       { r: 0, c: 1, name: "horizontal" },
@@ -147,63 +143,63 @@ function GameContent() {
 
       console.log(`📏 ${name}: found ${count} in a row`);
 
-      // Award points based on line length
       if (count >= 5) {
         console.log(`🎯 Found 5+ in a row in ${name}!`);
 
-        // Check what was there BEFORE this move
+        // NEW LOGIC: Check if there was already a COMPLETE 4-in-a-row line
+        // We need to check if removing our piece leaves a complete 4-in-a-row somewhere
         const boardBefore = board.map((r, rIdx) =>
           r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
         );
 
-        let countBefore = 0;
-        // Count forward from our position (without our piece)
-        for (let i = 1; i < 5; i++) {
-          const newRow = row + r * i;
-          const newCol = col + c * i;
-          if (
-            newRow >= 0 &&
-            newRow < BOARD_SIZE &&
-            newCol >= 0 &&
-            newCol < BOARD_SIZE &&
-            boardBefore[newRow][newCol] === player
-          ) {
-            countBefore++;
-          } else break;
+        let hadComplete4InARow = false;
+
+        // Check all possible 4-length segments in this direction that could have been complete
+        for (let startOffset = -3; startOffset <= 0; startOffset++) {
+          let segmentCount = 0;
+          let segmentComplete = true;
+
+          for (let i = 0; i < 4; i++) {
+            const checkRow = row + r * (startOffset + i);
+            const checkCol = col + c * (startOffset + i);
+
+            if (
+              checkRow >= 0 &&
+              checkRow < BOARD_SIZE &&
+              checkCol < BOARD_SIZE
+            ) {
+              if (boardBefore[checkRow][checkCol] === player) {
+                segmentCount++;
+              } else {
+                segmentComplete = false;
+                break;
+              }
+            } else {
+              segmentComplete = false;
+              break;
+            }
+          }
+
+          if (segmentComplete && segmentCount === 4) {
+            hadComplete4InARow = true;
+            break;
+          }
         }
 
-        // Count backward from our position (without our piece)
-        for (let i = 1; i < 5; i++) {
-          const newRow = row - r * i;
-          const newCol = col - c * i;
-          if (
-            newRow >= 0 &&
-            newRow < BOARD_SIZE &&
-            newCol >= 0 &&
-            newCol < BOARD_SIZE &&
-            boardBefore[newRow][newCol] === player
-          ) {
-            countBefore++;
-          } else break;
-        }
-
-        console.log(`🔍 ${name}: was ${countBefore} before, now ${count}`);
-
-        // Award points
-        if (countBefore === 4) {
-          // Extending 4-in-a-row to 5-in-a-row = 1 point
+        if (hadComplete4InARow) {
+          // Extending existing complete 4-in-a-row to 5-in-a-row = 1 point
           totalPoints += 1;
           console.log(
-            `✅ ${player} extended 4-in-a-row to 5-in-a-row in ${name}: +1 point`
+            `✅ ${player} extended complete 4-in-a-row to 5-in-a-row in ${name}: +1 point`
           );
-          alert(`${player} extended 4→5 in ${name}: +1 point`);
+          alert(`${player} extended complete 4→5 in ${name}: +1 point`);
         } else {
           // Creating new 5-in-a-row = 2 points
           totalPoints += 2;
           console.log(
-            `✅ ${player} created new 5-in-a-row in ${name} (was ${countBefore}): +2 points`
+            `✅ ${player} created new 5-in-a-row in ${name}: +2 points`
           );
-          alert(`${player} created new 5-in-a-row in ${name}: +2 points`);
+          alert(`${player} created NEW 5-in-a-row in ${name}: +2 points`);
         }
       } else if (count === 4) {
         // Creating 4-in-a-row = 1 point
