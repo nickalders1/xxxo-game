@@ -99,47 +99,63 @@ function GameContent() {
     ];
 
     let totalScore = 0;
-    const scoredLines = new Set(); // Track which lines we've already scored
+    const processedCells = new Set<string>();
 
     for (let row = 0; row < BOARD_SIZE; row++) {
       for (let col = 0; col < BOARD_SIZE; col++) {
         if (board[row][col] !== player) continue;
 
+        const cellKey = `${row},${col}`;
+        if (processedCells.has(cellKey)) continue;
+
         for (const { r, c } of directions) {
-          // Only check lines starting from this position to avoid double counting
-          let count = 0;
-          const positions = [];
+          // Find the start of the line in this direction
+          let startRow = row;
+          let startCol = col;
 
-          // Count consecutive pieces in this direction
-          for (let i = 0; i < 5; i++) {
-            const newRow = row + r * i;
-            const newCol = col + c * i;
-
-            if (
-              newRow >= 0 &&
-              newRow < BOARD_SIZE &&
-              newCol >= 0 &&
-              newCol < BOARD_SIZE &&
-              board[newRow][newCol] === player
-            ) {
-              count++;
-              positions.push(`${newRow},${newCol}`);
-            } else {
-              break;
-            }
+          // Go backwards to find the actual start of the line
+          while (
+            startRow - r >= 0 &&
+            startRow - r < BOARD_SIZE &&
+            startCol - c >= 0 &&
+            startCol - c < BOARD_SIZE &&
+            board[startRow - r][startCol - c] === player
+          ) {
+            startRow -= r;
+            startCol -= c;
           }
 
-          // Only score if we have 4+ in a row and haven't scored this line yet
-          if (count >= 4) {
-            const lineKey = `${r},${c}:${positions.join("-")}`;
-            if (!scoredLines.has(lineKey)) {
-              scoredLines.add(lineKey);
-              if (count >= 5) {
-                totalScore += 2; // 2 points for 5 in a row
-              } else if (count >= 4) {
-                totalScore += 1; // 1 point for 4 in a row
-              }
+          // Now count forward from the start
+          let count = 0;
+          let currentRow = startRow;
+          let currentCol = startCol;
+          const lineCells = [];
+
+          while (
+            currentRow >= 0 &&
+            currentRow < BOARD_SIZE &&
+            currentCol >= 0 &&
+            currentCol < BOARD_SIZE &&
+            board[currentRow][currentCol] === player
+          ) {
+            count++;
+            lineCells.push(`${currentRow},${currentCol}`);
+            currentRow += r;
+            currentCol += c;
+          }
+
+          // Only score if we have 4+ in a row and this line contains our current cell
+          if (count >= 4 && lineCells.includes(cellKey)) {
+            // Mark all cells in this line as processed
+            lineCells.forEach((cell) => processedCells.add(cell));
+
+            if (count >= 5) {
+              totalScore += 2; // 2 points for 5+ in a row
+            } else {
+              totalScore += 1; // 1 point for 4 in a row
             }
+
+            break; // Don't check other directions for this cell
           }
         }
       }
