@@ -139,11 +139,51 @@ function GameContent() {
         } else break;
       }
 
-      // Award points based on line length
-      if (count >= 5) {
-        totalPoints += 2; // 2 points for 5+ in a row
+      // Now check what was there BEFORE we placed this piece
+      const boardBefore = board.map((r) => [...r]);
+      boardBefore[row][col] = ""; // Remove the piece we just placed
+
+      let countBefore = 0;
+      // Count forward from the same position (but without our new piece)
+      for (let i = 1; i < 5; i++) {
+        const newRow = row + r * i;
+        const newCol = col + c * i;
+        if (
+          newRow >= 0 &&
+          newRow < BOARD_SIZE &&
+          newCol >= 0 &&
+          newCol < BOARD_SIZE &&
+          boardBefore[newRow][newCol] === player
+        ) {
+          countBefore++;
+        } else break;
+      }
+
+      // Count backward from the same position (but without our new piece)
+      for (let i = 1; i < 5; i++) {
+        const newRow = row - r * i;
+        const newCol = col - c * i;
+        if (
+          newRow >= 0 &&
+          newRow < BOARD_SIZE &&
+          newCol >= 0 &&
+          newCol < BOARD_SIZE &&
+          boardBefore[newRow][newCol] === player
+        ) {
+          countBefore++;
+        } else break;
+      }
+
+      // Award points based on what changed
+      if (count >= 5 && countBefore >= 4) {
+        // Had 4, now has 5+ -> only 1 extra point
+        totalPoints += 1;
+      } else if (count >= 5) {
+        // New 5+ in a row -> 2 points
+        totalPoints += 2;
       } else if (count >= 4) {
-        totalPoints += 1; // 1 point for 4 in a row
+        // New 4 in a row -> 1 point
+        totalPoints += 1;
       }
     }
 
