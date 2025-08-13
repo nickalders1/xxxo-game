@@ -145,14 +145,16 @@ function GameContent() {
 
     let totalPoints = 0;
 
-    for (const { r, c, name } of directions) {
+    for (const direction of directions) {
+      const { r: dirR, c: dirC, name } = direction; // Fix: rename to avoid conflicts
+
       // Count in both directions from the placed piece
       let count = 1; // Start with 1 for the piece we just placed
 
       // Count forward
       for (let i = 1; i < 5; i++) {
-        const newRow = row + r * i;
-        const newCol = col + c * i;
+        const newRow = row + dirR * i;
+        const newCol = col + dirC * i;
         if (
           newRow >= 0 &&
           newRow < BOARD_SIZE &&
@@ -166,8 +168,8 @@ function GameContent() {
 
       // Count backward
       for (let i = 1; i < 5; i++) {
-        const newRow = row - r * i;
-        const newCol = col - c * i;
+        const newRow = row - dirR * i;
+        const newCol = col - dirC * i;
         if (
           newRow >= 0 &&
           newRow < BOARD_SIZE &&
@@ -199,8 +201,8 @@ function GameContent() {
           startOffset <= forwardCount - 3;
           startOffset++
         ) {
-          const segmentStartRow = row + r * startOffset;
-          const segmentStartCol = col + c * startOffset;
+          const segmentStartRow = row + dirR * startOffset;
+          const segmentStartCol = col + dirC * startOffset;
 
           // Check if this 4-segment would have scored before our move
           if (
@@ -208,8 +210,8 @@ function GameContent() {
               boardBefore,
               segmentStartRow,
               segmentStartCol,
-              r,
-              c,
+              dirR,
+              dirC,
               4,
               player
             )
