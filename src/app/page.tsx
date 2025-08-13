@@ -1,208 +1,892 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Play, BookOpen, Trophy, Users } from "lucide-react"
-import AuthForm from "@/components/auth-form"
-import RoomManager from "@/components/room-manager"
-import MultiplayerGame from "@/components/multiplayer-game"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Home, RotateCcw } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Bot, User } from "lucide-react";
 
-export default function HomePage() {
-  const [user, setUser] = useState<any>(null)
-  const [token, setToken] = useState<string>("")
-  const [gameRoom, setGameRoom] = useState<string>("")
-  const [gameState, setGameState] = useState<any>(null)
-  const [showRoomManager, setShowRoomManager] = useState(false)
+const BOARD_SIZE = 5;
 
+interface GameState {
+  board: string[][];
+  currentPlayer: "X" | "O";
+  gameActive: boolean;
+  score: { X: number; O: number };
+  lastMove: {
+    X: { row: number; col: number } | null;
+    O: { row: number; col: number } | null;
+  };
+  bonusTurn: boolean;
+  totalScore: { X: number; O: number };
+}
+
+export default function GamePage() {
+  const [gameState, setGameState] = useState<GameState>({
+    board: Array(BOARD_SIZE)
+      .fill(null)
+      .map(() => Array(BOARD_SIZE).fill("")),
+    currentPlayer: "X",
+    gameActive: true,
+    score: { X: 0, O: 0 },
+    lastMove: { X: null, O: null },
+    bonusTurn: false,
+    totalScore: { X: 0, O: 0 },
+  });
+
+  const [statusMessage, setStatusMessage] = useState("Player X's turn");
+  const [winner, setWinner] = useState<string | null>(null);
+  const [gameMode, setGameMode] = useState<"pvp" | "ai">("pvp");
+  const [aiDifficulty, setAiDifficulty] = useState<"easy" | "medium" | "hard">(
+    "medium"
+  );
+  const [isAiThinking, setIsAiThinking] = useState(false);
+
+  // AI Move Effect
   useEffect(() => {
-    // Check for existing auth
-    const savedToken = localStorage.getItem("token")
-    const savedUser = localStorage.getItem("user")
-
-    if (savedToken && savedUser) {
-      setToken(savedToken)
-      setUser(JSON.parse(savedUser))
+    if (
+      gameMode === "ai" &&
+      gameState.currentPlayer === "O" &&
+      gameState.gameActive &&
+      !isAiThinking
+    ) {
+      makeAiMove();
     }
-  }, [])
+  }, [gameState.currentPlayer, gameState.gameActive, gameMode, isAiThinking]);
 
-  const handleAuthSuccess = (newToken: string, newUser: any) => {
-    setToken(newToken)
-    setUser(newUser)
-  }
+  const initializeGame = () => {
+    setGameState((prev) => ({
+      ...prev,
+      board: Array(BOARD_SIZE)
+        .fill(null)
+        .map(() => Array(BOARD_SIZE).fill("")),
+      currentPlayer: "X",
+      gameActive: true,
+      score: { X: 0, O: 0 },
+      lastMove: { X: null, O: null },
+      bonusTurn: false,
+    }));
+    setStatusMessage(gameMode === "ai" ? "Your turn (X)" : "Player X's turn");
+    setWinner(null);
+    setIsAiThinking(false);
+  };
 
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("user")
-    setToken("")
-    setUser(null)
-    setGameRoom("")
-    setGameState(null)
-    setShowRoomManager(false)
-  }
+  const isNextToLastMove = (row: number, col: number, player: "X" | "O") => {
+    const last = gameState.lastMove[player];
+    if (!last) return false;
+    return Math.abs(row - last.row) <= 1 && Math.abs(col - last.col) <= 1;
+  };
 
-  const handleMultiplayerClick = () => {
-    setShowRoomManager(true)
-  }
+  const countDirection = (
+    board: string[][],
+    row: number,
+    col: number,
+    r: number,
+    c: number,
+    player: string
+  ) => {
+    let count = 0;
+    for (let i = 1; i < 5; i++) {
+      const newRow = row + r * i;
+      const newCol = col + c * i;
+      if (
+        newRow >= 0 &&
+        newRow < BOARD_SIZE &&
+        newCol >= 0 &&
+        newCol < BOARD_SIZE &&
+        board[newRow][newCol] === player
+      ) {
+        count++;
+      } else break;
+    }
+    return count;
+  };
 
-  const handleGameStart = (roomCode: string, initialGameState?: any) => {
-    console.log("Game starting:", { roomCode, initialGameState })
-    setGameRoom(roomCode)
-    setGameState(initialGameState)
-  }
+  // 🔧 DEBUG: Verbeterde checkForPoints functie met logging
+  const checkForPoints = (
+    board: string[][],
+    row: number,
+    col: number,
+    player: string
+  ) => {
+    console.log(`🎯 Checking points for ${player} at (${row}, ${col})`);
 
-  const handleBackToMenu = () => {
-    setShowRoomManager(false)
-    setGameRoom("")
-    setGameState(null)
-  }
+    const directions = [
+      { r: 0, c: 1, name: "horizontal" }, // horizontal
+      { r: 1, c: 0, name: "vertical" }, // vertical
+      { r: 1, c: 1, name: "diagonal \\" }, // diagonal \
+      { r: 1, c: -1, name: "diagonal /" }, // diagonal /
+    ];
 
-  // Show auth form if not logged in
-  if (!user || !token) {
-    return <AuthForm onAuthSuccess={handleAuthSuccess} />
-  }
+    let totalPoints = 0;
 
-  // Show multiplayer game if game is active
-  if (gameRoom && gameState && gameState.players && gameState.players.X && gameState.players.O) {
-    return (
-      <MultiplayerGame
-        user={user}
-        token={token}
-        roomCode={gameRoom}
-        initialGameState={gameState}
-        onBackToMenu={handleBackToMenu}
-        onLogout={handleLogout}
-      />
+    for (const { r, c, name } of directions) {
+      let count = 1; // Start met 1 voor de huidige positie
+
+      // Tel naar achteren
+      let backwardCount = 0;
+      for (let i = 1; i < 5; i++) {
+        const newRow = row - r * i;
+        const newCol = col - c * i;
+        if (
+          newRow >= 0 &&
+          newRow < BOARD_SIZE &&
+          newCol < BOARD_SIZE &&
+          board[newRow][newCol] === player
+        ) {
+          backwardCount++;
+        } else break;
+      }
+
+      // Tel naar voren
+      let forwardCount = 0;
+      for (let i = 1; i < 5; i++) {
+        const newRow = row + r * i;
+        const newCol = col + c * i;
+        if (
+          newRow >= 0 &&
+          newRow < BOARD_SIZE &&
+          newCol < BOARD_SIZE &&
+          board[newRow][newCol] === player
+        ) {
+          forwardCount++;
+        } else break;
+      }
+
+      count = 1 + backwardCount + forwardCount;
+
+      console.log(
+        `  ${name}: backward=${backwardCount}, forward=${forwardCount}, total=${count}`
+      );
+
+      // Geef punten voor deze richting
+      let directionPoints = 0;
+      if (count >= 5) {
+        directionPoints = 2;
+        console.log(`  ✅ ${name}: 5 op een rij = 2 punten`);
+      } else if (count >= 4) {
+        directionPoints = 1;
+        console.log(`  ✅ ${name}: 4 op een rij = 1 punt`);
+      } else {
+        console.log(`  ❌ ${name}: ${count} op een rij = 0 punten`);
+      }
+
+      totalPoints += directionPoints;
+    }
+
+    console.log(`🏆 Total points for this move: ${totalPoints}`);
+    return totalPoints;
+  };
+
+  const anyPotentialPoints = (
+    board: string[][],
+    lastMove: {
+      X: { row: number; col: number } | null;
+      O: { row: number; col: number } | null;
+    }
+  ) => {
+    console.log("🔍 Checking for potential points...");
+
+    // Als er nog veel lege vakjes zijn, zijn er waarschijnlijk nog punten mogelijk
+    const emptyCells = countEmptyCells(board);
+    if (emptyCells > 12) {
+      console.log(`✅ Many empty cells (${emptyCells}), points still possible`);
+      return true;
+    }
+
+    // Voor beide spelers, check realistisch of ze nog kunnen scoren
+    for (const player of ["X", "O"]) {
+      const last = lastMove[player as "X" | "O"];
+      const opponent = player === "X" ? "O" : "X";
+      console.log(`🎯 Checking player ${player}, last move:`, last);
+
+      // Check alle lege vakjes die geldig zijn voor deze speler
+      for (let row = 0; row < BOARD_SIZE; row++) {
+        for (let col = 0; col < BOARD_SIZE; col++) {
+          // Skip als vakje bezet is
+          if (board[row][col] !== "") continue;
+
+          // Skip als het naast de laatste zet van deze speler is
+          if (
+            last &&
+            Math.abs(row - last.row) <= 1 &&
+            Math.abs(col - last.col) <= 1
+          ) {
+            continue;
+          }
+
+          // Simuleer het plaatsen van dit symbool en check direct voor punten
+          const testBoard = board.map((r) => [...r]);
+          testBoard[row][col] = player;
+          const directPoints = checkForPoints(testBoard, row, col, player);
+
+          if (directPoints > 0) {
+            console.log(
+              `✅ Player ${player} can score ${directPoints} points directly at (${row}, ${col})`
+            );
+            return true;
+          }
+
+          // Check ook voor potentiële lijnen (minder streng dan voorheen)
+          const directions = [
+            { r: 0, c: 1, name: "horizontal" },
+            { r: 1, c: 0, name: "vertical" },
+            { r: 1, c: 1, name: "diagonal \\" },
+            { r: 1, c: -1, name: "diagonal /" },
+          ];
+
+          for (const { r, c, name } of directions) {
+            // Check of we een lijn van 4 kunnen maken in deze richting
+            for (let lineStart = -3; lineStart <= 0; lineStart++) {
+              let playerCount = 0;
+              let emptyCount = 0;
+              let opponentCount = 0;
+              let hasCurrentPos = false;
+
+              // Check 4 posities in deze lijn (voor 4 op een rij)
+              for (let i = 0; i < 4; i++) {
+                const checkRow = row + r * (lineStart + i);
+                const checkCol = col + c * (lineStart + i);
+
+                if (
+                  checkRow >= 0 &&
+                  checkRow < BOARD_SIZE &&
+                  checkCol >= 0 &&
+                  checkCol < BOARD_SIZE
+                ) {
+                  if (checkRow === row && checkCol === col) {
+                    hasCurrentPos = true;
+                    emptyCount++;
+                  } else if (board[checkRow][checkCol] === player) {
+                    playerCount++;
+                  } else if (board[checkRow][checkCol] === "") {
+                    emptyCount++;
+                  } else if (board[checkRow][checkCol] === opponent) {
+                    opponentCount++;
+                  }
+                } else {
+                  opponentCount++; // Buiten bord = geblokkeerd
+                }
+              }
+
+              // Als deze lijn de huidige positie bevat, geen tegenstander heeft,
+              // en genoeg ruimte heeft voor 4 op een rij
+              if (
+                hasCurrentPos &&
+                opponentCount === 0 &&
+                playerCount + emptyCount >= 4
+              ) {
+                console.log(
+                  `✅ Player ${player} has potential 4-in-a-row in ${name} direction at (${row}, ${col})`
+                );
+                console.log(
+                  `   - Player pieces: ${playerCount}, Empty spaces: ${emptyCount}`
+                );
+                return true;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    console.log("❌ No realistic scoring opportunities left");
+    return false;
+  };
+
+  const hasValidMove = (
+    board: string[][],
+    player: "X" | "O",
+    lastMove: {
+      X: { row: number; col: number } | null;
+      O: { row: number; col: number } | null;
+    }
+  ) => {
+    const last = lastMove[player];
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        if (
+          board[row][col] === "" &&
+          (!last ||
+            Math.abs(row - last.row) > 1 ||
+            Math.abs(col - last.col) > 1)
+        ) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+
+  const countEmptyCells = (board: string[][]) => {
+    let count = 0;
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        if (board[row][col] === "") count++;
+      }
+    }
+    return count;
+  };
+
+  // AI Helper Functions
+  const evaluatePosition = (board: string[][], player: "X" | "O") => {
+    let score = 0;
+    const opponent = player === "X" ? "O" : "X";
+
+    // Check all possible lines for scoring opportunities
+    const directions = [
+      { r: 0, c: 1 },
+      { r: 1, c: 0 },
+      { r: 1, c: 1 },
+      { r: 1, c: -1 },
+    ];
+
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        for (const { r, c } of directions) {
+          let playerCount = 0;
+          let opponentCount = 0;
+          let emptyCount = 0;
+
+          for (let i = 0; i < 5; i++) {
+            const newRow = row + r * i;
+            const newCol = col + c * i;
+
+            if (
+              newRow >= 0 &&
+              newRow < BOARD_SIZE &&
+              newCol >= 0 &&
+              newCol < BOARD_SIZE
+            ) {
+              if (board[newRow][newCol] === player) playerCount++;
+              else if (board[newRow][newCol] === opponent) opponentCount++;
+              else emptyCount++;
+            }
+          }
+
+          // Only count if line has potential (no opponent pieces)
+          if (opponentCount === 0 && playerCount > 0) {
+            score += playerCount * playerCount;
+          }
+          // Penalty for opponent opportunities
+          if (playerCount === 0 && opponentCount > 0) {
+            score -= opponentCount * opponentCount;
+          }
+        }
+      }
+    }
+
+    return score;
+  };
+
+  const getValidMoves = (
+    board: string[][],
+    player: "X" | "O",
+    lastMove: any
+  ) => {
+    const validMoves = [];
+    const last = lastMove[player];
+
+    for (let row = 0; row < BOARD_SIZE; row++) {
+      for (let col = 0; col < BOARD_SIZE; col++) {
+        // 🔧 FIX: was row++ instead of col++
+        if (
+          board[row][col] === "" &&
+          (!last ||
+            Math.abs(row - last.row) > 1 ||
+            Math.abs(col - last.col) > 1)
+        ) {
+          validMoves.push({ row, col });
+        }
+      }
+    }
+
+    return validMoves;
+  };
+
+  const makeAiMove = () => {
+    if (
+      !gameState.gameActive ||
+      gameState.currentPlayer !== "O" ||
+      gameMode !== "ai"
     )
-  }
+      return;
 
-  // Show room manager if user clicked multiplayer
-  if (showRoomManager) {
-    return (
-      <RoomManager
-        user={user}
-        token={token}
-        onGameStart={handleGameStart}
-        onLogout={handleLogout}
-        onBack={handleBackToMenu}
-      />
-    )
-  }
+    setIsAiThinking(true);
 
-  // Show main menu by default after login
+    // Simulate thinking time
+    setTimeout(
+      () => {
+        const validMoves = getValidMoves(
+          gameState.board,
+          "O",
+          gameState.lastMove
+        );
+        if (validMoves.length === 0) {
+          setIsAiThinking(false);
+          return;
+        }
+
+        let bestMove = validMoves[0];
+
+        if (aiDifficulty === "easy") {
+          // Random move
+          bestMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+        } else if (aiDifficulty === "medium") {
+          // Look for immediate scoring opportunities
+          let bestScore = Number.NEGATIVE_INFINITY;
+
+          for (const move of validMoves) {
+            const testBoard = gameState.board.map((row) => [...row]);
+            testBoard[move.row][move.col] = "O";
+            const points = checkForPoints(testBoard, move.row, move.col, "O");
+
+            if (points > bestScore) {
+              bestScore = points;
+              bestMove = move;
+            }
+          }
+
+          // If no immediate points, add some randomness
+          if (bestScore === 0 && Math.random() < 0.3) {
+            bestMove =
+              validMoves[Math.floor(Math.random() * validMoves.length)];
+          }
+        } else {
+          // hard
+          // More sophisticated evaluation
+          let bestScore = Number.NEGATIVE_INFINITY;
+
+          for (const move of validMoves) {
+            const testBoard = gameState.board.map((row) => [...row]);
+            testBoard[move.row][move.col] = "O";
+
+            const immediatePoints = checkForPoints(
+              testBoard,
+              move.row,
+              move.col,
+              "O"
+            );
+            const positionScore = evaluatePosition(testBoard, "O");
+            const totalScore = immediatePoints * 100 + positionScore;
+
+            if (totalScore > bestScore) {
+              bestScore = totalScore;
+              bestMove = move;
+            }
+          }
+        }
+
+        setIsAiThinking(false);
+        handleMove(bestMove.row, bestMove.col);
+      },
+      aiDifficulty === "easy" ? 500 : aiDifficulty === "medium" ? 1000 : 1500
+    );
+  };
+
+  const declareWinner = (newScore: { X: number; O: number }) => {
+    let winnerText = "";
+    const newTotalScore = { ...gameState.totalScore };
+
+    if (newScore.X > newScore.O) {
+      winnerText = "PLAYER X WINS! 🎉";
+      newTotalScore.X++;
+    } else if (newScore.O > newScore.X) {
+      winnerText = "PLAYER O WINS! 🎉";
+      newTotalScore.O++;
+    } else {
+      winnerText = "It's a Tie!";
+    }
+
+    setWinner(winnerText);
+    setGameState((prev) => ({
+      ...prev,
+      totalScore: newTotalScore,
+      gameActive: false,
+    }));
+  };
+
+  const handleMove = (row: number, col: number) => {
+    if (!gameState.gameActive) return;
+
+    if (gameState.board[row][col] !== "") {
+      setStatusMessage("This spot is already taken!");
+      setTimeout(
+        () => setStatusMessage(`Player ${gameState.currentPlayer}'s turn`),
+        2000
+      );
+      return;
+    }
+
+    if (isNextToLastMove(row, col, gameState.currentPlayer)) {
+      setStatusMessage("You may not make a move next to your last move.");
+      setTimeout(
+        () => setStatusMessage(`Player ${gameState.currentPlayer}'s turn`),
+        2000
+      );
+      return;
+    }
+
+    const newBoard = gameState.board.map((row) => [...row]);
+    newBoard[row][col] = gameState.currentPlayer;
+
+    const points = checkForPoints(newBoard, row, col, gameState.currentPlayer);
+    const newScore = { ...gameState.score };
+    newScore[gameState.currentPlayer] += points;
+
+    const newLastMove = { ...gameState.lastMove };
+    newLastMove[gameState.currentPlayer] = { row, col };
+
+    if (gameState.bonusTurn && gameState.currentPlayer === "O") {
+      setGameState((prev) => ({
+        ...prev,
+        board: newBoard,
+        score: newScore,
+        lastMove: newLastMove,
+        bonusTurn: false,
+        gameActive: false,
+      }));
+      declareWinner(newScore);
+      return;
+    }
+
+    const xCanMove = hasValidMove(newBoard, "X", newLastMove);
+    const oCanMove = hasValidMove(newBoard, "O", newLastMove);
+
+    // ✨ Check ook of er nog punten te halen zijn
+    const stillPointsPossible = anyPotentialPoints(newBoard, newLastMove);
+
+    // Debug logging
+    console.log("🎮 Game state check:", {
+      emptyCells: countEmptyCells(newBoard),
+      xCanMove,
+      oCanMove,
+      stillPointsPossible,
+    });
+
+    if (
+      countEmptyCells(newBoard) <= 1 ||
+      (!xCanMove && !oCanMove) ||
+      !stillPointsPossible
+    ) {
+      let endReason = "";
+      if (countEmptyCells(newBoard) <= 1) {
+        endReason = "Board is full";
+      } else if (!xCanMove && !oCanMove) {
+        endReason = "No valid moves left";
+      } else if (!stillPointsPossible) {
+        endReason = "No more points possible";
+      }
+
+      console.log(`🏁 Game ended: ${endReason}`);
+      setGameState((prev) => ({
+        ...prev,
+        board: newBoard,
+        score: newScore,
+        lastMove: newLastMove,
+        gameActive: false,
+      }));
+      declareWinner(newScore);
+      return;
+    }
+
+    if (gameState.currentPlayer === "X" && !xCanMove && oCanMove) {
+      setGameState((prev) => ({
+        ...prev,
+        board: newBoard,
+        score: newScore,
+        lastMove: newLastMove,
+        bonusTurn: true,
+        currentPlayer: "O",
+      }));
+      setStatusMessage("Player O's bonus turn");
+      return;
+    }
+
+    if (gameState.currentPlayer === "X" && !oCanMove) {
+      setGameState((prev) => ({
+        ...prev,
+        board: newBoard,
+        score: newScore,
+        lastMove: newLastMove,
+        gameActive: false,
+      }));
+      declareWinner(newScore);
+      return;
+    }
+
+    const nextPlayer = gameState.currentPlayer === "X" ? "O" : "X";
+    setGameState((prev) => ({
+      ...prev,
+      board: newBoard,
+      score: newScore,
+      lastMove: newLastMove,
+      currentPlayer: nextPlayer,
+    }));
+    setStatusMessage(
+      gameMode === "ai"
+        ? nextPlayer === "X"
+          ? "Your turn (X)"
+          : "AI thinking..."
+        : `Player ${nextPlayer}'s turn`
+    );
+  };
+
+  const resetTotalScore = () => {
+    setGameState((prev) => ({ ...prev, totalScore: { X: 0, O: 0 } }));
+  };
+
+  const getCellClass = (row: number, col: number) => {
+    let classes =
+      "w-20 h-20 bg-gray-600 border-2 border-black flex items-center justify-center text-2xl font-bold cursor-pointer hover:bg-gray-500 transition-colors";
+
+    if (gameState.board[row][col] !== "") {
+      classes += " cursor-not-allowed bg-gray-600";
+    }
+
+    const lastX = gameState.lastMove.X;
+    const lastO = gameState.lastMove.O;
+
+    if (lastX && lastX.row === row && lastX.col === col) {
+      classes += " !bg-gray-800 text-white";
+    }
+    if (lastO && lastO.row === row && lastO.col === col) {
+      classes += " !bg-gray-800 text-white";
+    }
+
+    return classes;
+  };
+
   return (
     <div className="min-h-screen bg-[#0e1014] text-white">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto max-w-screen-md px-4 py-8">
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="text-center flex-1">
-            <h1 className="text-6xl font-bold mb-4 text-white">XXXo The Game</h1>
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-              Een strategische variant van tic-tac-toe op een 5x5 bord. Maak 4 of 5 op een rij om punten te scoren!
-            </p>
+        <div className="flex flex-col lg:flex-row justify-between items-center mb-8 gap-4">
+          <Link href="/">
+            <Button
+              variant="outline"
+              className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+            >
+              <Home className="mr-2 h-4 w-4" />
+              Home
+            </Button>
+          </Link>
+          <div className="text-center">
+            <h1 className="text-4xl font-bold mb-2">XXXo The Game</h1>
+            <div className="flex items-center gap-4 justify-center">
+              <Select
+                value={gameMode}
+                onValueChange={(value: "pvp" | "ai") => setGameMode(value)}
+              >
+                <SelectTrigger className="w-full sm:w-50 bg-gray-800 border-gray-600 text-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem
+                    value="pvp"
+                    className="text-white hover:bg-gray-700"
+                  >
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Player vs Player
+                    </div>
+                  </SelectItem>
+                  <SelectItem
+                    value="ai"
+                    className="text-white hover:bg-gray-700"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Bot className="h-4 w-4" />
+                      Player vs AI
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+
+              {gameMode === "ai" && (
+                <Select
+                  value={aiDifficulty}
+                  onValueChange={(value: "easy" | "medium" | "hard") =>
+                    setAiDifficulty(value)
+                  }
+                >
+                  <SelectTrigger className="w-full sm:w-50 bg-gray-800 border-gray-600 text-white">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="bg-gray-800 border-gray-600">
+                    <SelectItem
+                      value="easy"
+                      className="text-white hover:bg-gray-700"
+                    >
+                      Easy
+                    </SelectItem>
+                    <SelectItem
+                      value="medium"
+                      className="text-white hover:bg-gray-700"
+                    >
+                      Medium
+                    </SelectItem>
+                    <SelectItem
+                      value="hard"
+                      className="text-white hover:bg-gray-700"
+                    >
+                      Hard
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </div>
           </div>
           <Button
-            onClick={handleLogout}
-            variant="outline"
-            className="border-gray-600 text-gray-300 hover:bg-gray-700 bg-transparent"
+            onClick={initializeGame}
+            className="bg-blue-600 hover:bg-blue-700"
           >
-            Logout
+            <RotateCcw className="mr-2 h-4 w-4" />
+            New Game
           </Button>
         </div>
 
-        {/* Main Menu Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-          {/* Multiplayer Game */}
-          <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-purple-600 rounded-full w-fit">
-                <Users className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-white text-xl">Multiplayer</CardTitle>
-              <CardDescription className="text-gray-300">Speel online tegen andere spelers</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button onClick={handleMultiplayerClick} className="w-full bg-purple-600 hover:bg-purple-700 text-white">
-                Online Spelen
-              </Button>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col gap-8">
+          {/* Game Board */}
+          <div className="w-full">
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-center text-white">
+                  {winner
+                    ? winner
+                    : isAiThinking
+                    ? "AI is thinking..."
+                    : statusMessage}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4">
+                {/* Overlay bij einde spel */}
+                {winner && (
+                  <div className="absolute inset-0 z-10 flex items-center justify-center">
+                    <div className="bg-black/80 border border-white/20 text-white rounded-xl px-12 py-5 shadow-xl text-center max-w-xs w-full">
+                      <h2 className="text-xl font-semibold mb-4">{winner}</h2>
+                      <Button
+                        onClick={initializeGame}
+                        className="w-full bg-blue-600 hover:bg-blue-700"
+                      >
+                        <RotateCcw className="mr-2 h-4 w-4" />
+                        Play Again
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
-          {/* Single Player Game */}
-          <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-green-600 rounded-full w-fit">
-                <Play className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-white text-xl">Lokaal Spel</CardTitle>
-              <CardDescription className="text-gray-300">Speel lokaal tegen een vriend of AI</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/game" className="w-full">
-                <Button className="w-full bg-green-600 hover:bg-green-700 text-white">Lokaal Spelen</Button>
-              </Link>
-            </CardContent>
-          </Card>
+                <div className="flex justify-center">
+                  <div className="grid grid-cols-5 gap-2 w-full max-w-[90vw] sm:max-w-[400px] aspect-square">
+                    {gameState.board.map((row, rowIndex) =>
+                      row.map((cell, colIndex) => (
+                        <button
+                          key={`${rowIndex}-${colIndex}`}
+                          className={`w-full h-full aspect-square text-base sm:text-xl flex items-center justify-center border border-gray-600 ${getCellClass(
+                            rowIndex,
+                            colIndex
+                          )}`}
+                          onClick={() => handleMove(rowIndex, colIndex)}
+                          disabled={!gameState.gameActive || cell !== ""}
+                        >
+                          {cell}
+                        </button>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
-          {/* Game Rules */}
-          <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-blue-600 rounded-full w-fit">
-                <BookOpen className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-white text-xl">Spelregels</CardTitle>
-              <CardDescription className="text-gray-300">Leer hoe je XXXo The Game speelt</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/rules" className="w-full">
+          {/* Score Panel */}
+          <div className="w-full space-y-6">
+            {/* Current Game Score */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white">Current Game</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Player X:</span>
+                    <span className="text-white font-bold">
+                      {gameState.score.X}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Player O:</span>
+                    <span className="text-white font-bold">
+                      {gameState.score.O}
+                    </span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Total Scoreboard */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white">Total Scoreboard</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Games Won - X:</span>
+                    <span className="text-white font-bold">
+                      {gameState.totalScore.X}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-300">Games Won - O:</span>
+                    <span className="text-white font-bold">
+                      {gameState.totalScore.O}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={resetTotalScore}
+                    variant="outline"
+                    className="w-full border-red-600 text-red-400 hover:bg-red-600 hover:text-white bg-transparent"
+                  >
+                    Reset Scoreboard
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Game Controls */}
+            <Card className="bg-gray-800 border-gray-700">
+              <CardHeader>
+                <CardTitle className="text-white">Game Controls</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
                 <Button
-                  variant="outline"
-                  className="w-full border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white bg-transparent"
+                  onClick={initializeGame}
+                  className="w-full bg-green-600 hover:bg-green-700"
                 >
-                  Regels Bekijken
+                  Start New Game
                 </Button>
-              </Link>
-            </CardContent>
-          </Card>
-
-          {/* Statistics */}
-          <Card className="bg-gray-800 border-gray-700 hover:bg-gray-750 transition-colors">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-orange-600 rounded-full w-fit">
-                <Trophy className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-white text-xl">Statistieken</CardTitle>
-              <CardDescription className="text-gray-300">Bekijk je spelstatistieken en prestaties</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/stats" className="w-full">
-                <Button
-                  variant="outline"
-                  className="w-full border-orange-600 text-orange-400 hover:bg-orange-600 hover:text-white bg-transparent"
-                >
-                  Stats Bekijken
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+                <Link href="/rules" className="block">
+                  <Button
+                    variant="outline"
+                    className="w-full border-blue-600 text-blue-400 hover:bg-blue-600 hover:text-white bg-transparent"
+                  >
+                    View Rules
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-
-        {/* User Info */}
-        <div className="mt-12 text-center">
-          <p className="text-gray-400">
-            Welkom terug, <span className="text-white font-semibold">{user.username}</span>!
-          </p>
-          <p className="text-gray-500 text-sm mt-1">
-            Games gespeeld: {user.stats.gamesPlayed} | Games gewonnen: {user.stats.gamesWon}
-          </p>
-        </div>
-
-        {/* Footer */}
-        <footer className="mt-16 text-center text-gray-400">
-          <p>&copy; 2024 XXXo The Game. Veel plezier met spelen!</p>
-        </footer>
       </div>
     </div>
-  )
+  );
 }
