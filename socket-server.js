@@ -191,7 +191,7 @@ const io = new Server(server, {
   },
 });
 
-// All the socket event handlers (keeping existing code)
+// All the socket event handlers
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
   io.emit("online-count", { count: io.engine.clientsCount });
@@ -251,14 +251,28 @@ io.on("connection", (socket) => {
   });
 
   socket.on("join-game", ({ gameId, playerName }) => {
+    console.log(`${playerName} trying to join game ${gameId}`);
     const game = games.get(gameId);
     if (!game) {
+      console.log(`Game ${gameId} not found`);
       socket.emit("error", { message: "Game not found" });
       return;
     }
 
-    const player = game.getPlayerBySocketId(socket.id);
+    // Find player by name instead of socket ID (since socket ID might have changed)
+    let player = null;
+    if (game.players.X.name === playerName) {
+      player = game.players.X;
+      // Update socket ID
+      game.players.X.id = socket.id;
+    } else if (game.players.O.name === playerName) {
+      player = game.players.O;
+      // Update socket ID
+      game.players.O.id = socket.id;
+    }
+
     if (!player) {
+      console.log(`Player ${playerName} not found in game ${gameId}`);
       socket.emit("error", { message: "You are not part of this game" });
       return;
     }
@@ -275,7 +289,9 @@ io.on("connection", (socket) => {
       yourSymbol: player.symbol,
     });
 
-    console.log(`${playerName} joined game ${gameId}`);
+    console.log(
+      `${playerName} successfully joined game ${gameId} as ${player.symbol}`
+    );
   });
 
   socket.on("make-move", ({ gameId, row, col }) => {

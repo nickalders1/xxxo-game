@@ -49,21 +49,26 @@ function OnlineGameContent() {
   const [statusMessage, setStatusMessage] = useState("Verbinden...");
   const [winner, setWinner] = useState<string | null>(null);
   const [gameTime, setGameTime] = useState(0);
+  const [actualPlayerName, setActualPlayerName] = useState<string>("");
 
   useEffect(() => {
     console.log("Game page loaded with:", { gameId, playerName }); // Debug log
 
-    // Try to get name from localStorage if URL parameter is empty
-    let actualPlayerName = playerName;
-    if (!actualPlayerName || actualPlayerName.trim() === "") {
-      actualPlayerName = localStorage.getItem("playerName");
-      console.log("Got name from localStorage:", actualPlayerName);
+    // Get player name from localStorage (client-side only)
+    let resolvedPlayerName = playerName;
+    if (typeof window !== "undefined") {
+      if (!resolvedPlayerName || resolvedPlayerName.trim() === "") {
+        resolvedPlayerName = localStorage.getItem("playerName");
+        console.log("Got name from localStorage:", resolvedPlayerName);
+      }
     }
 
-    if (!gameId || !actualPlayerName) {
+    setActualPlayerName(resolvedPlayerName || "Unknown");
+
+    if (!gameId || !resolvedPlayerName) {
       console.log("Missing parameters, redirecting to lobby", {
         gameId,
-        actualPlayerName,
+        resolvedPlayerName,
       });
       setTimeout(() => {
         window.location.href = "/online";
@@ -77,10 +82,10 @@ function OnlineGameContent() {
 
     socketConnection.on("connect", () => {
       setConnected(true);
-      console.log("Connected, joining game with name:", actualPlayerName);
+      console.log("Connected, joining game with name:", resolvedPlayerName);
       socketConnection.emit("join-game", {
         gameId,
-        playerName: actualPlayerName,
+        playerName: resolvedPlayerName,
       });
     });
 
@@ -211,8 +216,7 @@ function OnlineGameContent() {
             <div className="text-xs text-slate-400 mb-4">
               Game ID: {gameId}
               <br />
-              Player:{" "}
-              {playerName || localStorage.getItem("playerName") || "Unknown"}
+              Player: {actualPlayerName}
             </div>
             <Link href="/online">
               <Button className="bg-purple-500 hover:bg-purple-600">
