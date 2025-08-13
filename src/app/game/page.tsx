@@ -96,16 +96,18 @@ function GameContent() {
     col: number,
     player: string
   ) => {
+    console.log(`🎯 Checking points for ${player} at (${row}, ${col})`);
+
     const directions = [
-      { r: 0, c: 1 }, // horizontal
-      { r: 1, c: 0 }, // vertical
-      { r: 1, c: 1 }, // diagonal \
-      { r: 1, c: -1 }, // diagonal /
+      { r: 0, c: 1, name: "horizontal" }, // horizontal
+      { r: 1, c: 0, name: "vertical" }, // vertical
+      { r: 1, c: 1, name: "diagonal \\" }, // diagonal \
+      { r: 1, c: -1, name: "diagonal /" }, // diagonal /
     ];
 
     let totalPoints = 0;
 
-    for (const { r, c } of directions) {
+    for (const { r, c, name } of directions) {
       // Count in both directions from the placed piece
       let count = 1; // Start with 1 for the piece we just placed
 
@@ -139,16 +141,20 @@ function GameContent() {
         } else break;
       }
 
-      // Now check what was there BEFORE this move
+      console.log(`📏 ${name}: found ${count} in a row`);
+
+      // Award points based on line length
       if (count >= 5) {
-        // Create board without our new piece
-        const boardBefore = board.map((r) => [...r]);
-        boardBefore[row][col] = "";
+        // For 5-in-a-row, check if there was already a 4-in-a-row before
+        // Create a copy of the board without our new piece
+        const boardBefore = board.map((r, rIdx) =>
+          r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
+        );
 
         // Count the same line without our piece
         let countBefore = 0;
 
-        // Count forward from our position
+        // Count forward from our position (without our piece)
         for (let i = 1; i < 5; i++) {
           const newRow = row + r * i;
           const newCol = col + c * i;
@@ -163,7 +169,7 @@ function GameContent() {
           } else break;
         }
 
-        // Count backward from our position
+        // Count backward from our position (without our piece)
         for (let i = 1; i < 5; i++) {
           const newRow = row - r * i;
           const newCol = col - c * i;
@@ -178,31 +184,27 @@ function GameContent() {
           } else break;
         }
 
-        console.log(
-          `Direction ${r},${c}: count=${count}, countBefore=${countBefore}`
-        );
+        console.log(`🔍 ${name}: was ${countBefore} before, now ${count}`);
 
         // Award points based on what was there before
         if (countBefore === 4) {
           totalPoints += 1;
           console.log(
-            `Player ${player} extended 4-in-a-row to 5-in-a-row: +1 point`
+            `✅ ${player} extended 4-in-a-row to 5-in-a-row in ${name}: +1 point`
           );
         } else {
           totalPoints += 2;
           console.log(
-            `Player ${player} created new 5-in-a-row (was ${countBefore} before): +2 points`
+            `✅ ${player} created new 5-in-a-row in ${name} (was ${countBefore}): +2 points`
           );
         }
       } else if (count === 4) {
         totalPoints += 1;
-        console.log(`Player ${player} created 4-in-a-row: +1 point`);
+        console.log(`✅ ${player} created 4-in-a-row in ${name}: +1 point`);
       }
     }
 
-    console.log(
-      `Total points for ${player} at (${row}, ${col}): ${totalPoints}`
-    );
+    console.log(`🏆 Total points for ${player}: ${totalPoints}`);
     return totalPoints;
   };
 
