@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "dev:full": "concurrently \"npm run dev -- --hostname 127.0.0.1 --port 3000\" \"npm run socket\"",
     "build": "next build",
     "start": "next start",
     "lint": "next lint"
