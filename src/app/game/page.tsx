@@ -471,9 +471,16 @@ function GameContent() {
     const newBoard = gameState.board.map((row) => [...row]);
     newBoard[row][col] = gameState.currentPlayer;
 
-    console.log(`🎮 About to check points for ${gameState.currentPlayer}`);
+    console.log(
+      `🎮 MOVE: ${gameState.currentPlayer} places at (${row}, ${col})`
+    );
+    console.log(
+      `🎮 BEFORE SCORING: ${gameState.currentPlayer} has ${
+        gameState.score[gameState.currentPlayer]
+      } points`
+    );
 
-    // Calculate points gained from this specific move
+    // Calculate points gained from this specific move - ONLY CALL ONCE!
     const pointsGained = checkForPoints(
       newBoard,
       row,
@@ -481,17 +488,27 @@ function GameContent() {
       gameState.currentPlayer
     );
 
-    console.log(`🎮 Points gained: ${pointsGained}`);
+    console.log(`🎮 POINTS CALCULATED: ${pointsGained}`);
 
-    // Add points to current score
+    // Add points to current score - ONLY ADD ONCE!
     const newScore = { ...gameState.score };
+    const oldScore = newScore[gameState.currentPlayer];
     newScore[gameState.currentPlayer] += pointsGained;
+
+    console.log(
+      `🎮 SCORE UPDATE: ${gameState.currentPlayer} ${oldScore} -> ${
+        newScore[gameState.currentPlayer]
+      } (+${pointsGained})`
+    );
 
     const newLastMove = { ...gameState.lastMove };
     newLastMove[gameState.currentPlayer] = { row, col };
 
     // Check game end conditions
     if (gameState.bonusTurn && gameState.currentPlayer === "O") {
+      console.log(
+        `🎮 BONUS TURN END - Final scores: X=${newScore.X}, O=${newScore.O}`
+      );
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -513,6 +530,9 @@ function GameContent() {
       (!xCanMove && !oCanMove) ||
       !stillPointsPossible
     ) {
+      console.log(
+        `🎮 GAME END - Final scores: X=${newScore.X}, O=${newScore.O}`
+      );
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -525,6 +545,9 @@ function GameContent() {
     }
 
     if (gameState.currentPlayer === "X" && !xCanMove && oCanMove) {
+      console.log(
+        `🎮 BONUS TURN for O - Scores: X=${newScore.X}, O=${newScore.O}`
+      );
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -542,6 +565,7 @@ function GameContent() {
     }
 
     if (gameState.currentPlayer === "X" && !oCanMove) {
+      console.log(`🎮 X WINS - Final scores: X=${newScore.X}, O=${newScore.O}`);
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -554,6 +578,10 @@ function GameContent() {
     }
 
     const nextPlayer = gameState.currentPlayer === "X" ? "O" : "X";
+    console.log(
+      `🎮 TURN SWITCH: ${gameState.currentPlayer} -> ${nextPlayer} - Scores: X=${newScore.X}, O=${newScore.O}`
+    );
+
     setGameState((prev) => ({
       ...prev,
       board: newBoard,
