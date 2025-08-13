@@ -43,7 +43,7 @@ class Game {
   }
 }
 
-// Game logic functions
+// Game logic functions (keeping all the existing functions)
 function isNextToLastMove(row, col, player, lastMove) {
   const last = lastMove[player];
   if (!last) return false;
@@ -161,7 +161,6 @@ function generateGameId() {
 }
 
 function findMatch(player) {
-  // Simple matchmaking - just pair with first available player
   const availablePlayer = playerQueue.find((p) => p.id !== player.id);
   if (availablePlayer) {
     playerQueue.splice(playerQueue.indexOf(availablePlayer), 1);
@@ -176,37 +175,29 @@ function updateQueuePositions(io) {
     if (socket) {
       socket.emit("queue-update", {
         position: index + 1,
-        estimatedWait: Math.max(5, (index + 1) * 10), // Rough estimate
+        estimatedWait: Math.max(5, (index + 1) * 10),
       });
     }
   });
 }
 
-// Create HTTP server and Socket.IO
+// Create HTTP server and Socket.IO - Listen on all interfaces
 const server = createServer();
 const io = new Server(server, {
   cors: {
-    origin: [
-      "http://127.0.0.1:3000",
-      "http://localhost:3000",
-      "https://xxxo.bothosts.com",
-      "http://xxxo.bothosts.com",
-    ],
+    origin: "*", // Allow all origins for development
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
+// All the socket event handlers (keeping existing code)
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
-
-  // Send online player count
   io.emit("online-count", { count: io.engine.clientsCount });
 
   socket.on("join-queue", ({ playerName }) => {
     console.log(`${playerName} trying to join queue`);
-
-    // Remove from queue if already in it
     const existingIndex = playerQueue.findIndex((p) => p.id === socket.id);
     if (existingIndex !== -1) {
       playerQueue.splice(existingIndex, 1);
@@ -215,16 +206,13 @@ io.on("connection", (socket) => {
     const player = { id: socket.id, name: playerName };
     connectedPlayers.set(socket.id, player);
 
-    // Try to find a match
     const opponent = findMatch(player);
 
     if (opponent) {
-      // Create new game
       const gameId = generateGameId();
       const game = new Game(gameId, player, opponent);
       games.set(gameId, game);
 
-      // Notify both players
       socket.emit("match-found", { gameId });
       const opponentSocket = io.sockets.sockets.get(opponent.id);
       if (opponentSocket) {
@@ -235,7 +223,6 @@ io.on("connection", (socket) => {
         `Match created: ${player.name} vs ${opponent.name} (Game: ${gameId})`
       );
     } else {
-      // Add to queue
       playerQueue.push(player);
       socket.emit("queue-joined", {
         position: playerQueue.length,
@@ -304,7 +291,6 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Make the move
     const newBoard = board.map((row) => [...row]);
     newBoard[row][col] = currentPlayer;
 
@@ -315,12 +301,10 @@ io.on("connection", (socket) => {
     const newLastMove = { ...lastMove };
     newLastMove[currentPlayer] = { row, col };
 
-    // Update game state
     game.gameState.board = newBoard;
     game.gameState.score = newScore;
     game.gameState.lastMove = newLastMove;
 
-    // Check game end conditions
     const xCanMove = hasValidMove(newBoard, "X", newLastMove);
     const oCanMove = hasValidMove(newBoard, "O", newLastMove);
     const stillPointsPossible = anyPotentialPoints(newBoard, newLastMove);
@@ -364,7 +348,6 @@ io.on("connection", (socket) => {
       return;
     }
 
-    // Switch turns
     game.gameState.currentPlayer = currentPlayer === "X" ? "O" : "X";
     io.to(gameId).emit("game-updated", { game: game });
   });
@@ -372,14 +355,12 @@ io.on("connection", (socket) => {
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
 
-    // Remove from queue
     const playerIndex = playerQueue.findIndex((p) => p.id === socket.id);
     if (playerIndex !== -1) {
       playerQueue.splice(playerIndex, 1);
       updateQueuePositions(io);
     }
 
-    // Handle game disconnection
     const player = connectedPlayers.get(socket.id);
     if (player) {
       for (const [gameId, game] of games.entries()) {
@@ -390,24 +371,21 @@ io.on("connection", (socket) => {
           socket
             .to(gameId)
             .emit("player-disconnected", { playerName: player.name });
-          // Optionally end the game or pause it
           break;
         }
       }
       connectedPlayers.delete(socket.id);
     }
 
-    // Update online count
     setTimeout(() => {
       io.emit("online-count", { count: io.engine.clientsCount });
     }, 100);
   });
 });
 
-server.listen(port, (err) => {
+// Listen on all interfaces (0.0.0.0) instead of just localhost
+server.listen(port, "0.0.0.0", (err) => {
   if (err) throw err;
-  console.log(`> Socket.IO server ready on http://localhost:${port}`);
-  console.log(
-    `> Allowing CORS from: 127.0.0.1:3000, localhost:3000, xxxo.bothosts.com`
-  );
+  console.log(`> Socket.IO server ready on http://0.0.0.0:${port}`);
+  console.log(`> Accessible from external domains`);
 });
