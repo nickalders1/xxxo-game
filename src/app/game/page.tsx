@@ -175,13 +175,15 @@ function GameContent() {
       }
 
       // Award points based on what changed
-      if (count >= 5 && countBefore >= 4) {
-        // Had 4, now has 5+ -> only 1 extra point
-        totalPoints += 1;
-      } else if (count >= 5) {
-        // New 5+ in a row -> 2 points
-        totalPoints += 2;
-      } else if (count >= 4) {
+      if (count >= 5) {
+        if (countBefore >= 4) {
+          // Had 4, now has 5+ -> only 1 extra point (total becomes 2)
+          totalPoints += 1;
+        } else {
+          // New 5+ in a row (was 0-3 before) -> 2 points
+          totalPoints += 2;
+        }
+      } else if (count >= 4 && countBefore < 4) {
         // New 4 in a row -> 1 point
         totalPoints += 1;
       }
