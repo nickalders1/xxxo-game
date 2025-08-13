@@ -3,6 +3,20 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Hide NitroPack badge */
+.nitropack-badge,
+#nitropack-floating-button,
+#nitropack,
+.np-badge,
+.nitropack-floating-btn,
+[data-nitro="badge"],
+[data-nitropack-badge] {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
