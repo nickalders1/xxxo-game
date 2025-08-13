@@ -52,6 +52,7 @@ function GameContent() {
   );
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [gameStats, setGameStats] = useState({ X: 0, O: 0, ties: 0 });
+  const [moveCount, setMoveCount] = useState(0);
 
   // AI Move Effect
   useEffect(() => {
@@ -66,6 +67,7 @@ function GameContent() {
   }, [gameState.currentPlayer, gameState.gameActive, mode, isAiThinking]);
 
   const initializeGame = () => {
+    console.log("🔄 GAME RESET - Starting fresh game");
     setGameState({
       board: Array(BOARD_SIZE)
         .fill(null)
@@ -81,6 +83,7 @@ function GameContent() {
     );
     setWinner(null);
     setIsAiThinking(false);
+    setMoveCount(0);
   };
 
   const isNextToLastMove = (row: number, col: number, player: "X" | "O") => {
@@ -96,7 +99,7 @@ function GameContent() {
     col: number,
     player: string
   ) => {
-    console.log(`🎯 Checking points for ${player} at (${row}, ${col})`);
+    console.log(`🎯 SCORING CHECK: ${player} at (${row}, ${col})`);
 
     const directions = [
       { r: 0, c: 1, name: "horizontal" },
@@ -141,14 +144,13 @@ function GameContent() {
         } else break;
       }
 
-      console.log(`📏 ${name}: found ${count} in a row`);
+      console.log(`📏 ${name}: ${count} pieces in line`);
 
-      // FIXED LOGIC: Only award points for the LONGEST line in this direction
-      // Don't count overlapping shorter lines
+      // Only award points for lines of 4 or 5
       if (count >= 5) {
-        console.log(`🎯 Found 5+ in a row in ${name}!`);
+        console.log(`🎯 Found ${count}-in-a-row in ${name}!`);
 
-        // Check if there was already a COMPLETE 4-in-a-row line
+        // Check if there was already a COMPLETE 4-in-a-row line before this move
         const boardBefore = board.map((r, rIdx) =>
           r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
         );
@@ -184,6 +186,9 @@ function GameContent() {
 
           if (segmentComplete && segmentCount === 4) {
             hadComplete4InARow = true;
+            console.log(
+              `📋 Found existing complete 4-in-a-row before this move`
+            );
             break;
           }
         }
@@ -191,14 +196,12 @@ function GameContent() {
         if (hadComplete4InARow) {
           // Extending existing complete 4-in-a-row to 5-in-a-row = 1 point
           totalPoints += 1;
-          console.log(
-            `✅ ${player} extended complete 4-in-a-row to 5-in-a-row in ${name}: +1 point`
-          );
+          console.log(`✅ ${player} extended 4-to-5 in ${name}: +1 point`);
         } else {
           // Creating new 5-in-a-row = 2 points
           totalPoints += 2;
           console.log(
-            `✅ ${player} created new 5-in-a-row in ${name}: +2 points`
+            `✅ ${player} created NEW 5-in-a-row in ${name}: +2 points`
           );
         }
 
@@ -209,10 +212,15 @@ function GameContent() {
         totalPoints += 1;
         console.log(`✅ ${player} created 4-in-a-row in ${name}: +1 point`);
       }
-      // Don't award points for lines shorter than 4
+      // Lines of 3 or less get no points
+      else if (count >= 3) {
+        console.log(
+          `📝 ${player} has ${count}-in-a-row in ${name} (no points)`
+        );
+      }
     }
 
-    console.log(`🏆 Total points for ${player}: ${totalPoints}`);
+    console.log(`🏆 TOTAL POINTS AWARDED: ${totalPoints}`);
     return totalPoints;
   };
 
@@ -468,17 +476,16 @@ function GameContent() {
       return;
     }
 
+    const newMoveCount = moveCount + 1;
+    setMoveCount(newMoveCount);
+
     const newBoard = gameState.board.map((row) => [...row]);
     newBoard[row][col] = gameState.currentPlayer;
 
     console.log(
-      `🎮 MOVE: ${gameState.currentPlayer} places at (${row}, ${col})`
+      `🎮 MOVE #${newMoveCount}: ${gameState.currentPlayer} places at (${row}, ${col})`
     );
-    console.log(
-      `🎮 BEFORE SCORING: ${gameState.currentPlayer} has ${
-        gameState.score[gameState.currentPlayer]
-      } points`
-    );
+    console.log(`🎮 BEFORE: X=${gameState.score.X}, O=${gameState.score.O}`);
 
     // Calculate points gained from this specific move - ONLY CALL ONCE!
     const pointsGained = checkForPoints(
@@ -488,18 +495,13 @@ function GameContent() {
       gameState.currentPlayer
     );
 
-    console.log(`🎮 POINTS CALCULATED: ${pointsGained}`);
+    console.log(`🎮 POINTS GAINED: ${pointsGained}`);
 
     // Add points to current score - ONLY ADD ONCE!
     const newScore = { ...gameState.score };
-    const oldScore = newScore[gameState.currentPlayer];
     newScore[gameState.currentPlayer] += pointsGained;
 
-    console.log(
-      `🎮 SCORE UPDATE: ${gameState.currentPlayer} ${oldScore} -> ${
-        newScore[gameState.currentPlayer]
-      } (+${pointsGained})`
-    );
+    console.log(`🎮 AFTER: X=${newScore.X}, O=${newScore.O}`);
 
     const newLastMove = { ...gameState.lastMove };
     newLastMove[gameState.currentPlayer] = { row, col };
@@ -578,9 +580,7 @@ function GameContent() {
     }
 
     const nextPlayer = gameState.currentPlayer === "X" ? "O" : "X";
-    console.log(
-      `🎮 TURN SWITCH: ${gameState.currentPlayer} -> ${nextPlayer} - Scores: X=${newScore.X}, O=${newScore.O}`
-    );
+    console.log(`🎮 TURN SWITCH: ${gameState.currentPlayer} -> ${nextPlayer}`);
 
     setGameState((prev) => ({
       ...prev,
@@ -651,6 +651,7 @@ function GameContent() {
             </h1>
             <div className="flex items-center gap-2 text-sm text-slate-300">
               <span>{mode === "ai" ? "Tegen AI" : "Lokaal Spel"}</span>
+              <span>• Zet #{moveCount}</span>
               {mode === "ai" && (
                 <>
                   <span>•</span>
