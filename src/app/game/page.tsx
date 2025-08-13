@@ -92,6 +92,41 @@ function GameContent() {
     return Math.abs(row - last.row) <= 1 && Math.abs(col - last.col) <= 1;
   };
 
+  // Helper function to check if a specific line segment would have scored points
+  const wouldLineScore = (
+    board: string[][],
+    startRow: number,
+    startCol: number,
+    dirR: number,
+    dirC: number,
+    length: number,
+    player: string
+  ) => {
+    // Check if we can fit the line
+    const endRow = startRow + dirR * (length - 1);
+    const endCol = startCol + dirC * (length - 1);
+
+    if (
+      endRow < 0 ||
+      endRow >= BOARD_SIZE ||
+      endCol < 0 ||
+      endCol >= BOARD_SIZE
+    ) {
+      return false;
+    }
+
+    // Check if all positions in this line contain the player's symbol
+    for (let i = 0; i < length; i++) {
+      const checkRow = startRow + dirR * i;
+      const checkCol = startCol + dirC * i;
+      if (board[checkRow][checkCol] !== player) {
+        return false;
+      }
+    }
+
+    return true;
+  };
+
   // Calculate points gained from placing a piece at this specific position
   const checkForPoints = (
     board: string[][],
@@ -146,68 +181,78 @@ function GameContent() {
 
       console.log(`📏 ${name}: ${count} pieces in line`);
 
-      // Check what was there BEFORE this move
-      const boardBefore = board.map((r, rIdx) =>
-        r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
-      );
-
-      // Count what was there before in this same direction
-      let countBefore = 0;
-
-      // Count forward from the same position
-      for (let i = 1; i < 5; i++) {
-        const newRow = row + r * i;
-        const newCol = col + c * i;
-        if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          boardBefore[newRow][newCol] === player
-        ) {
-          countBefore++;
-        } else break;
-      }
-
-      // Count backward from the same position
-      for (let i = 1; i < 5; i++) {
-        const newRow = row - r * i;
-        const newCol = col - c * i;
-        if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          boardBefore[newRow][newCol] === player
-        ) {
-          countBefore++;
-        } else break;
-      }
-
-      console.log(`📋 ${name}: had ${countBefore} pieces before this move`);
-
-      // Award points based on what changed
-      if (count >= 5 && countBefore >= 4) {
-        // Had 4+ before, now has 5+ = extending existing line = +1 point
-        totalPoints += 1;
-        console.log(
-          `✅ ${player} extended existing 4+ to 5+ in ${name}: +1 point`
+      if (count >= 4) {
+        // Check what was there BEFORE this move
+        const boardBefore = board.map((r, rIdx) =>
+          r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
         );
-      } else if (count >= 5 && countBefore < 4) {
-        // Had less than 4 before, now has 5+ = new 5-in-a-row = +2 points
-        totalPoints += 2;
-        console.log(
-          `✅ ${player} created NEW 5-in-a-row in ${name}: +2 points`
-        );
-      } else if (count >= 4 && countBefore < 4) {
-        // Had less than 4 before, now has 4 = new 4-in-a-row = +1 point
-        totalPoints += 1;
-        console.log(`✅ ${player} created NEW 4-in-a-row in ${name}: +1 point`);
+
+        // Check if there was already a COMPLETE 4-in-a-row line that would have scored points
+        let hadScoringLine = false;
+
+        // Check all possible 4-length segments in this direction that could overlap with our current line
+        const backwardCount = Math.min(3, count - 1); // How far back we need to check
+        const forwardCount = Math.min(3, count - 1); // How far forward we need to check
+
+        for (
+          let startOffset = -backwardCount;
+          startOffset <= forwardCount - 3;
+          startOffset++
+        ) {
+          const segmentStartRow = row + r * startOffset;
+          const segmentStartCol = col + c * startOffset;
+
+          // Check if this 4-segment would have scored before our move
+          if (
+            wouldLineScore(
+              boardBefore,
+              segmentStartRow,
+              segmentStartCol,
+              r,
+              c,
+              4,
+              player
+            )
+          ) {
+            hadScoringLine = true;
+            console.log(
+              `📋 Found existing 4-in-a-row that scored before this move`
+            );
+            break;
+          }
+        }
+
+        // Award points based on what we found
+        if (count >= 5 && hadScoringLine) {
+          // Had a scoring 4-in-a-row before, now has 5+ = extending existing line = +1 point
+          totalPoints += 1;
+          console.log(
+            `✅ ${player} extended existing scoring 4-in-a-row to 5+ in ${name}: +1 point`
+          );
+        } else if (count >= 5 && !hadScoringLine) {
+          // No scoring 4-in-a-row before, now has 5+ = new 5-in-a-row = +2 points
+          totalPoints += 2;
+          console.log(
+            `✅ ${player} created NEW 5-in-a-row in ${name}: +2 points`
+          );
+        } else if (count === 4 && !hadScoringLine) {
+          // No scoring line before, now has 4 = new 4-in-a-row = +1 point
+          totalPoints += 1;
+          console.log(
+            `✅ ${player} created NEW 4-in-a-row in ${name}: +1 point`
+          );
+        }
+        // If count === 4 and hadScoringLine, no additional points (already scored for this line)
+        else if (count === 4 && hadScoringLine) {
+          console.log(
+            `📝 ${player} has 4-in-a-row in ${name} but already scored for this line (no points)`
+          );
+        }
       }
-      // If count < 4 or countBefore >= count, no points awarded
+      // Lines of 3 or less get no points
       else if (count >= 3) {
         console.log(
-          `📝 ${player} has ${count}-in-a-row in ${name} (no points - had ${countBefore} before)`
+          `📝 ${player} has ${count}-in-a-row in ${name} (no points)`
         );
       }
     }
