@@ -102,7 +102,7 @@ function GameContent() {
       { r: 1, c: -1 }, // diagonal /
     ];
 
-    let totalPoints = 0;
+    let maxPoints = 0;
 
     for (const { r, c } of directions) {
       let count = 1; // Start met 1 voor de huidige positie
@@ -137,15 +137,19 @@ function GameContent() {
         } else break;
       }
 
-      // Geef punten voor de langste lijn in deze richting (NIET cumulatief)
+      // Bepaal punten voor deze richting (NIET cumulatief)
+      let directionPoints = 0;
       if (count >= 5) {
-        totalPoints = Math.max(totalPoints, 2); // Max 2 punten voor 5 op een rij
+        directionPoints = 2; // 2 punten voor 5 op een rij
       } else if (count >= 4) {
-        totalPoints = Math.max(totalPoints, 1); // Max 1 punt voor 4 op een rij
+        directionPoints = 1; // 1 punt voor 4 op een rij
       }
+
+      // Neem de hoogste score van alle richtingen
+      maxPoints = Math.max(maxPoints, directionPoints);
     }
 
-    return totalPoints;
+    return maxPoints;
   };
 
   const hasValidMove = (

@@ -58,7 +58,7 @@ function checkForPoints(board, row, col, player) {
     { r: 1, c: -1 }, // diagonal /
   ];
 
-  let totalPoints = 0;
+  let maxPoints = 0;
 
   for (const { r, c } of directions) {
     let count = 1; // Start with 1 for current position
@@ -93,15 +93,19 @@ function checkForPoints(board, row, col, player) {
       } else break;
     }
 
-    // Award points for longest line in this direction (NOT cumulative)
+    // Determine points for this direction (NOT cumulative)
+    let directionPoints = 0;
     if (count >= 5) {
-      totalPoints = Math.max(totalPoints, 2); // Max 2 points for 5 in a row
+      directionPoints = 2; // 2 points for 5 in a row
     } else if (count >= 4) {
-      totalPoints = Math.max(totalPoints, 1); // Max 1 point for 4 in a row
+      directionPoints = 1; // 1 point for 4 in a row
     }
+
+    // Take the highest score from all directions
+    maxPoints = Math.max(maxPoints, directionPoints);
   }
 
-  return totalPoints;
+  return maxPoints;
 }
 
 function hasValidMove(board, player, lastMove) {
