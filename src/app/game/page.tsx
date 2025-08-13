@@ -102,11 +102,15 @@ function GameContent() {
     length: number,
     player: string
   ) => {
-    // Check if we can fit the line
     const endRow = startRow + dirR * (length - 1);
     const endCol = startCol + dirC * (length - 1);
 
+    // zowel start als einde moeten binnen het bord vallen
     if (
+      startRow < 0 ||
+      startRow >= BOARD_SIZE ||
+      startCol < 0 ||
+      startCol >= BOARD_SIZE ||
       endRow < 0 ||
       endRow >= BOARD_SIZE ||
       endCol < 0 ||
@@ -115,10 +119,18 @@ function GameContent() {
       return false;
     }
 
-    // Check if all positions in this line contain the player's symbol
+    // check elk punt in het segment veilig
     for (let i = 0; i < length; i++) {
       const checkRow = startRow + dirR * i;
       const checkCol = startCol + dirC * i;
+      if (
+        checkRow < 0 ||
+        checkRow >= BOARD_SIZE ||
+        checkCol < 0 ||
+        checkCol >= BOARD_SIZE
+      ) {
+        return false;
+      }
       if (board[checkRow][checkCol] !== player) {
         return false;
       }
