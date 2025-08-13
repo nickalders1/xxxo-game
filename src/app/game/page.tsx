@@ -146,76 +146,68 @@ function GameContent() {
 
       console.log(`📏 ${name}: ${count} pieces in line`);
 
-      // Only award points for lines of 4 or 5
-      if (count >= 5) {
-        console.log(`🎯 Found ${count}-in-a-row in ${name}!`);
+      // Check what was there BEFORE this move
+      const boardBefore = board.map((r, rIdx) =>
+        r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
+      );
 
-        // Check if there was already a COMPLETE 4-in-a-row line before this move
-        const boardBefore = board.map((r, rIdx) =>
-          r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
-        );
+      // Count what was there before in this same direction
+      let countBefore = 0;
 
-        let hadComplete4InARow = false;
-
-        // Check all possible 4-length segments in this direction that could have been complete
-        for (let startOffset = -3; startOffset <= 0; startOffset++) {
-          let segmentCount = 0;
-          let segmentComplete = true;
-
-          for (let i = 0; i < 4; i++) {
-            const checkRow = row + r * (startOffset + i);
-            const checkCol = col + c * (startOffset + i);
-
-            if (
-              checkRow >= 0 &&
-              checkRow < BOARD_SIZE &&
-              checkCol >= 0 &&
-              checkCol < BOARD_SIZE
-            ) {
-              if (boardBefore[checkRow][checkCol] === player) {
-                segmentCount++;
-              } else {
-                segmentComplete = false;
-                break;
-              }
-            } else {
-              segmentComplete = false;
-              break;
-            }
-          }
-
-          if (segmentComplete && segmentCount === 4) {
-            hadComplete4InARow = true;
-            console.log(
-              `📋 Found existing complete 4-in-a-row before this move`
-            );
-            break;
-          }
-        }
-
-        if (hadComplete4InARow) {
-          // Extending existing complete 4-in-a-row to 5-in-a-row = 1 point
-          totalPoints += 1;
-          console.log(`✅ ${player} extended 4-to-5 in ${name}: +1 point`);
-        } else {
-          // Creating new 5-in-a-row = 2 points
-          totalPoints += 2;
-          console.log(
-            `✅ ${player} created NEW 5-in-a-row in ${name}: +2 points`
-          );
-        }
-
-        // IMPORTANT: Don't check for 4-in-a-row in this direction since we already have 5+
-        continue;
-      } else if (count === 4) {
-        // Creating 4-in-a-row = 1 point (only if we didn't already find 5+ in this direction)
-        totalPoints += 1;
-        console.log(`✅ ${player} created 4-in-a-row in ${name}: +1 point`);
+      // Count forward from the same position
+      for (let i = 1; i < 5; i++) {
+        const newRow = row + r * i;
+        const newCol = col + c * i;
+        if (
+          newRow >= 0 &&
+          newRow < BOARD_SIZE &&
+          newCol >= 0 &&
+          newCol < BOARD_SIZE &&
+          boardBefore[newRow][newCol] === player
+        ) {
+          countBefore++;
+        } else break;
       }
-      // Lines of 3 or less get no points
+
+      // Count backward from the same position
+      for (let i = 1; i < 5; i++) {
+        const newRow = row - r * i;
+        const newCol = col - c * i;
+        if (
+          newRow >= 0 &&
+          newRow < BOARD_SIZE &&
+          newCol >= 0 &&
+          newCol < BOARD_SIZE &&
+          boardBefore[newRow][newCol] === player
+        ) {
+          countBefore++;
+        } else break;
+      }
+
+      console.log(`📋 ${name}: had ${countBefore} pieces before this move`);
+
+      // Award points based on what changed
+      if (count >= 5 && countBefore >= 4) {
+        // Had 4+ before, now has 5+ = extending existing line = +1 point
+        totalPoints += 1;
+        console.log(
+          `✅ ${player} extended existing 4+ to 5+ in ${name}: +1 point`
+        );
+      } else if (count >= 5 && countBefore < 4) {
+        // Had less than 4 before, now has 5+ = new 5-in-a-row = +2 points
+        totalPoints += 2;
+        console.log(
+          `✅ ${player} created NEW 5-in-a-row in ${name}: +2 points`
+        );
+      } else if (count >= 4 && countBefore < 4) {
+        // Had less than 4 before, now has 4 = new 4-in-a-row = +1 point
+        totalPoints += 1;
+        console.log(`✅ ${player} created NEW 4-in-a-row in ${name}: +1 point`);
+      }
+      // If count < 4 or countBefore >= count, no points awarded
       else if (count >= 3) {
         console.log(
-          `📝 ${player} has ${count}-in-a-row in ${name} (no points)`
+          `📝 ${player} has ${count}-in-a-row in ${name} (no points - had ${countBefore} before)`
         );
       }
     }
