@@ -43,14 +43,15 @@ class Game {
   }
 }
 
-// Game logic functions (keeping all the existing functions)
+// Game logic functions
 function isNextToLastMove(row, col, player, lastMove) {
   const last = lastMove[player];
   if (!last) return false;
   return Math.abs(row - last.row) <= 1 && Math.abs(col - last.col) <= 1;
 }
 
-function checkForPoints(board, row, col, player) {
+// Calculate total score for a player on the entire board
+function calculateTotalScore(board, player) {
   const directions = [
     { r: 0, c: 1 }, // horizontal
     { r: 1, c: 0 }, // vertical
@@ -58,54 +59,54 @@ function checkForPoints(board, row, col, player) {
     { r: 1, c: -1 }, // diagonal /
   ];
 
-  let maxPoints = 0;
+  let totalScore = 0;
+  const scoredLines = new Set(); // Track which lines we've already scored
 
-  for (const { r, c } of directions) {
-    let count = 1; // Start with 1 for current position
+  for (let row = 0; row < BOARD_SIZE; row++) {
+    for (let col = 0; col < BOARD_SIZE; col++) {
+      if (board[row][col] !== player) continue;
 
-    // Count backwards
-    for (let i = 1; i < 5; i++) {
-      const newRow = row - r * i;
-      const newCol = col - c * i;
-      if (
-        newRow >= 0 &&
-        newRow < BOARD_SIZE &&
-        newCol >= 0 &&
-        newCol < BOARD_SIZE &&
-        board[newRow][newCol] === player
-      ) {
-        count++;
-      } else break;
+      for (const { r, c } of directions) {
+        // Only check lines starting from this position to avoid double counting
+        let count = 0;
+        const positions = [];
+
+        // Count consecutive pieces in this direction
+        for (let i = 0; i < 5; i++) {
+          const newRow = row + r * i;
+          const newCol = col + c * i;
+
+          if (
+            newRow >= 0 &&
+            newRow < BOARD_SIZE &&
+            newCol >= 0 &&
+            newCol < BOARD_SIZE &&
+            board[newRow][newCol] === player
+          ) {
+            count++;
+            positions.push(`${newRow},${newCol}`);
+          } else {
+            break;
+          }
+        }
+
+        // Only score if we have 4+ in a row and haven't scored this line yet
+        if (count >= 4) {
+          const lineKey = `${r},${c}:${positions.join("-")}`;
+          if (!scoredLines.has(lineKey)) {
+            scoredLines.add(lineKey);
+            if (count >= 5) {
+              totalScore += 2; // 2 points for 5 in a row
+            } else if (count >= 4) {
+              totalScore += 1; // 1 point for 4 in a row
+            }
+          }
+        }
+      }
     }
-
-    // Count forwards
-    for (let i = 1; i < 5; i++) {
-      const newRow = row + r * i;
-      const newCol = col + c * i;
-      if (
-        newRow >= 0 &&
-        newRow < BOARD_SIZE &&
-        newCol >= 0 &&
-        newCol < BOARD_SIZE &&
-        board[newRow][newCol] === player
-      ) {
-        count++;
-      } else break;
-    }
-
-    // Determine points for this direction (NOT cumulative)
-    let directionPoints = 0;
-    if (count >= 5) {
-      directionPoints = 2; // 2 points for 5 in a row
-    } else if (count >= 4) {
-      directionPoints = 1; // 1 point for 4 in a row
-    }
-
-    // Take the highest score from all directions
-    maxPoints = Math.max(maxPoints, directionPoints);
   }
 
-  return maxPoints;
+  return totalScore;
 }
 
 function hasValidMove(board, player, lastMove) {
@@ -151,9 +152,10 @@ function anyPotentialPoints(board, lastMove) {
 
         const testBoard = board.map((r) => [...r]);
         testBoard[row][col] = player;
-        const directPoints = checkForPoints(testBoard, row, col, player);
+        const newScore = calculateTotalScore(testBoard, player);
+        const currentScore = calculateTotalScore(board, player);
 
-        if (directPoints > 0) return true;
+        if (newScore > currentScore) return true;
       }
     }
   }
@@ -304,7 +306,7 @@ io.on("connection", (socket) => {
       return;
     }
 
-    const { board, currentPlayer, lastMove, score } = game.gameState;
+    const { board, currentPlayer, lastMove } = game.gameState;
 
     if (
       board[row][col] !== "" ||
@@ -317,9 +319,10 @@ io.on("connection", (socket) => {
     const newBoard = board.map((row) => [...row]);
     newBoard[row][col] = currentPlayer;
 
-    const points = checkForPoints(newBoard, row, col, currentPlayer);
-    const newScore = { ...score };
-    newScore[currentPlayer] += points;
+    // Calculate new total scores for both players
+    const newScoreX = calculateTotalScore(newBoard, "X");
+    const newScoreO = calculateTotalScore(newBoard, "O");
+    const newScore = { X: newScoreX, O: newScoreO };
 
     const newLastMove = { ...lastMove };
     newLastMove[currentPlayer] = { row, col };
