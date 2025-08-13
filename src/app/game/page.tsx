@@ -176,28 +176,53 @@ function GameContent() {
     return count;
   };
 
-  const anyPotentialPoints = (board: string[][], lastMove: any) => {
-    const emptyCells = countEmptyCells(board);
-    if (emptyCells > 12) return true;
+  const anyPotentialPoints = (board: string[][]) => {
+    const dirs = [
+      { r: 0, c: 1 },
+      { r: 1, c: 0 },
+      { r: 1, c: 1 },
+      { r: 1, c: -1 },
+    ];
 
-    for (const player of ["X", "O"]) {
-      const last = lastMove[player];
-      for (let row = 0; row < BOARD_SIZE; row++) {
-        for (let col = 0; col < BOARD_SIZE; col++) {
-          if (board[row][col] !== "") continue;
-          if (
-            last &&
-            Math.abs(row - last.row) <= 1 &&
-            Math.abs(col - last.col) <= 1
-          )
-            continue;
-          const testBoard = board.map((r) => [...r]);
-          testBoard[row][col] = player;
-          const pointsGained = checkForPoints(testBoard, row, col, player);
-          if (pointsGained > 0) return true;
+    const inBounds = (r: number, c: number) =>
+      r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+
+    for (const { r: dr, c: dc } of dirs) {
+      for (let sr = 0; sr < BOARD_SIZE; sr++) {
+        for (let sc = 0; sc < BOARD_SIZE; sc++) {
+          const er4r = sr + dr * 3;
+          const er4c = sc + dc * 3;
+          if (inBounds(er4r, er4c)) {
+            let hasX = false,
+              hasO = false,
+              hasEmpty = false;
+            for (let i = 0; i < 4; i++) {
+              const v = board[sr + dr * i][sc + dc * i];
+              if (v === "X") hasX = true;
+              else if (v === "O") hasO = true;
+              else hasEmpty = true;
+            }
+            if (hasEmpty && (!hasO || !hasX)) return true;
+          }
+
+          const er5r = sr + dr * 4;
+          const er5c = sc + dc * 4;
+          if (inBounds(er5r, er5c)) {
+            let hasX = false,
+              hasO = false,
+              hasEmpty = false;
+            for (let i = 0; i < 5; i++) {
+              const v = board[sr + dr * i][sc + dc * i];
+              if (v === "X") hasX = true;
+              else if (v === "O") hasO = true;
+              else hasEmpty = true;
+            }
+            if (hasEmpty && (!hasO || !hasX)) return true;
+          }
         }
       }
     }
+
     return false;
   };
 
@@ -427,7 +452,7 @@ function GameContent() {
 
     const xCanMove = hasValidMove(newBoard, "X", newLastMove);
     const oCanMove = hasValidMove(newBoard, "O", newLastMove);
-    const stillPointsPossible = anyPotentialPoints(newBoard, newLastMove);
+    const stillPointsPossible = anyPotentialPoints(newBoard);
 
     if (
       countEmptyCells(newBoard) <= 1 ||
