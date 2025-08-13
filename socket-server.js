@@ -186,8 +186,14 @@ function updateQueuePositions(io) {
 const server = createServer();
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: [
+      "http://127.0.0.1:3000",
+      "http://localhost:3000",
+      "https://xxxo.bothosts.com",
+      "http://xxxo.bothosts.com",
+    ],
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
@@ -198,6 +204,8 @@ io.on("connection", (socket) => {
   io.emit("online-count", { count: io.engine.clientsCount });
 
   socket.on("join-queue", ({ playerName }) => {
+    console.log(`${playerName} trying to join queue`);
+
     // Remove from queue if already in it
     const existingIndex = playerQueue.findIndex((p) => p.id === socket.id);
     if (existingIndex !== -1) {
@@ -399,4 +407,7 @@ io.on("connection", (socket) => {
 server.listen(port, (err) => {
   if (err) throw err;
   console.log(`> Socket.IO server ready on http://localhost:${port}`);
+  console.log(
+    `> Allowing CORS from: 127.0.0.1:3000, localhost:3000, xxxo.bothosts.com`
+  );
 });
