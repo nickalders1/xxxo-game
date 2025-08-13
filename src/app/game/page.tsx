@@ -139,52 +139,52 @@ function GameContent() {
         } else break;
       }
 
-      // Now check what was there BEFORE we placed this piece
-      const boardBefore = board.map((r) => [...r]);
-      boardBefore[row][col] = ""; // Remove the piece we just placed
-
-      let countBefore = 0;
-      // Count forward from the same position (but without our new piece)
-      for (let i = 1; i < 5; i++) {
-        const newRow = row + r * i;
-        const newCol = col + c * i;
-        if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          boardBefore[newRow][newCol] === player
-        ) {
-          countBefore++;
-        } else break;
-      }
-
-      // Count backward from the same position (but without our new piece)
-      for (let i = 1; i < 5; i++) {
-        const newRow = row - r * i;
-        const newCol = col - c * i;
-        if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          boardBefore[newRow][newCol] === player
-        ) {
-          countBefore++;
-        } else break;
-      }
-
-      // Award points based on what changed
+      // Now check if this exact line already had 4 pieces before we placed our piece
+      // We do this by checking if removing our piece still gives us 4 in a row
       if (count >= 5) {
-        if (countBefore >= 4) {
-          // Had 4, now has 5+ -> only 1 extra point (total becomes 2)
-          totalPoints += 1;
-        } else {
-          // New 5+ in a row (was 0-3 before) -> 2 points
-          totalPoints += 2;
+        // Check if there was already a 4-in-a-row in this exact line before our move
+        const boardBefore = board.map((r) => [...r]);
+        boardBefore[row][col] = ""; // Remove our piece
+
+        let countBefore = 0;
+        // Count the exact same line without our piece
+        for (let i = 1; i < 5; i++) {
+          const newRow = row + r * i;
+          const newCol = col + c * i;
+          if (
+            newRow >= 0 &&
+            newRow < BOARD_SIZE &&
+            newCol >= 0 &&
+            newCol < BOARD_SIZE &&
+            boardBefore[newRow][newCol] === player
+          ) {
+            countBefore++;
+          } else break;
         }
-      } else if (count >= 4 && countBefore < 4) {
-        // New 4 in a row -> 1 point
+
+        for (let i = 1; i < 5; i++) {
+          const newRow = row - r * i;
+          const newCol = col - c * i;
+          if (
+            newRow >= 0 &&
+            newRow < BOARD_SIZE &&
+            newCol >= 0 &&
+            newCol < BOARD_SIZE &&
+            boardBefore[newRow][newCol] === player
+          ) {
+            countBefore++;
+          } else break;
+        }
+
+        // If we had exactly 4 before and now have 5+, award 1 point (extending 4 to 5)
+        // If we had less than 4 before and now have 5+, award 2 points (new 5-in-a-row)
+        if (countBefore === 4) {
+          totalPoints += 1; // Extending 4 to 5
+        } else {
+          totalPoints += 2; // New 5-in-a-row
+        }
+      } else if (count === 4) {
+        // New 4-in-a-row
         totalPoints += 1;
       }
     }
