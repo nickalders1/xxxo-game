@@ -335,7 +335,8 @@ function GameContent() {
 
     for (let row = 0; row < BOARD_SIZE; row++) {
       for (let col = 0; col < BOARD_SIZE; col++) {
-        for (const { r, c } of directions) {
+        for (const direction of directions) {
+          const { r, c } = direction;
           let playerCount = 0;
           let opponentCount = 0;
           let emptyCount = 0;
