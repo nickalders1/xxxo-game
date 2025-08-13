@@ -139,60 +139,13 @@ function GameContent() {
         } else break;
       }
 
-      // Now award points based on what we achieved
+      // Simple scoring: 4 = 1 point, 5+ = 2 points
       if (count >= 5) {
-        // We have 5+ in a row, but was there already a 4-in-a-row before?
-        const boardBefore = board.map((r) => [...r]);
-        boardBefore[row][col] = ""; // Remove our piece
-
-        let countBefore = 0;
-        // Count the exact same line without our piece
-        for (let i = 1; i < 5; i++) {
-          const newRow = row + r * i;
-          const newCol = col + c * i;
-          if (
-            newRow >= 0 &&
-            newRow < BOARD_SIZE &&
-            newCol >= 0 &&
-            newCol < BOARD_SIZE &&
-            boardBefore[newRow][newCol] === player
-          ) {
-            countBefore++;
-          } else break;
-        }
-
-        for (let i = 1; i < 5; i++) {
-          const newRow = row - r * i;
-          const newCol = col - c * i;
-          if (
-            newRow >= 0 &&
-            newRow < BOARD_SIZE &&
-            newCol >= 0 &&
-            newCol < BOARD_SIZE &&
-            boardBefore[newRow][newCol] === player
-          ) {
-            countBefore++;
-          } else break;
-        }
-
-        // CHECK 1: Was there less than 4 before? Then +2 points (NEW 5-in-a-row)
-        if (countBefore < 4) {
-          totalPoints += 2;
-          console.log(
-            `Player ${player} created NEW 5-in-a-row (was ${countBefore} before): +2 points`
-          );
-        }
-        // CHECK 2: Was there exactly 4 before? Then +1 point (extending 4 to 5)
-        else if (countBefore === 4) {
-          totalPoints += 1;
-          console.log(
-            `Player ${player} extended 4-in-a-row to 5-in-a-row: +1 point`
-          );
-        }
-      } else if (count === 4) {
-        // New 4-in-a-row
+        totalPoints += 2;
+        console.log(`Player ${player} made 5-in-a-row: +2 points`);
+      } else if (count >= 4) {
         totalPoints += 1;
-        console.log(`Player ${player} created 4-in-a-row: +1 point`);
+        console.log(`Player ${player} made 4-in-a-row: +1 point`);
       }
     }
 
