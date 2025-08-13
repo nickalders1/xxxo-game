@@ -54,7 +54,6 @@ function GameContent() {
   const [gameStats, setGameStats] = useState({ X: 0, O: 0, ties: 0 });
   const [moveCount, setMoveCount] = useState(0);
 
-  // AI Move Effect
   useEffect(() => {
     if (
       mode === "ai" &&
@@ -67,7 +66,6 @@ function GameContent() {
   }, [gameState.currentPlayer, gameState.gameActive, mode, isAiThinking]);
 
   const initializeGame = () => {
-    console.log("🔄 GAME RESET - Starting fresh game");
     setGameState({
       board: Array(BOARD_SIZE)
         .fill(null)
@@ -92,62 +90,12 @@ function GameContent() {
     return Math.abs(row - last.row) <= 1 && Math.abs(col - last.col) <= 1;
   };
 
-  // Helper function to check if a specific line segment would have scored points
-  const wouldLineScore = (
-    board: string[][],
-    startRow: number,
-    startCol: number,
-    dirR: number,
-    dirC: number,
-    length: number,
-    player: string
-  ) => {
-    const endRow = startRow + dirR * (length - 1);
-    const endCol = startCol + dirC * (length - 1);
-
-    // zowel start als einde moeten binnen het bord vallen
-    if (
-      startRow < 0 ||
-      startRow >= BOARD_SIZE ||
-      startCol < 0 ||
-      startCol >= BOARD_SIZE ||
-      endRow < 0 ||
-      endRow >= BOARD_SIZE ||
-      endCol < 0 ||
-      endCol >= BOARD_SIZE
-    ) {
-      return false;
-    }
-
-    // check elk punt in het segment veilig
-    for (let i = 0; i < length; i++) {
-      const checkRow = startRow + dirR * i;
-      const checkCol = startCol + dirC * i;
-      if (
-        checkRow < 0 ||
-        checkRow >= BOARD_SIZE ||
-        checkCol < 0 ||
-        checkCol >= BOARD_SIZE
-      ) {
-        return false;
-      }
-      if (board[checkRow][checkCol] !== player) {
-        return false;
-      }
-    }
-
-    return true;
-  };
-
-  // Calculate points gained from placing a piece at this specific position
   const checkForPoints = (
     board: string[][],
     row: number,
     col: number,
     player: string
   ) => {
-    console.log(`🎯 SCORING CHECK: ${player} at (${row}, ${col})`);
-
     const directions = [
       { r: 0, c: 1, name: "horizontal" },
       { r: 1, c: 0, name: "vertical" },
@@ -157,121 +105,43 @@ function GameContent() {
 
     let totalPoints = 0;
 
-    for (const direction of directions) {
-      const { r: dirR, c: dirC, name } = direction; // Fix: rename to avoid conflicts
-
-      // Count in both directions from the placed piece
-      let count = 1; // Start with 1 for the piece we just placed
-
-      // Count forward
+    for (const { r: dirR, c: dirC, name } of directions) {
+      let forward = 0;
       for (let i = 1; i < 5; i++) {
-        const newRow = row + dirR * i;
-        const newCol = col + dirC * i;
-        if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          board[newRow][newCol] === player
-        ) {
-          count++;
-        } else break;
+        const nr = row + dirR * i;
+        const nc = col + dirC * i;
+        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) break;
+        if (board[nr][nc] !== player) break;
+        forward++;
       }
 
-      // Count backward
+      let backward = 0;
       for (let i = 1; i < 5; i++) {
-        const newRow = row - dirR * i;
-        const newCol = col - dirC * i;
-        if (
-          newRow >= 0 &&
-          newRow < BOARD_SIZE &&
-          newCol >= 0 &&
-          newCol < BOARD_SIZE &&
-          board[newRow][newCol] === player
-        ) {
-          count++;
-        } else break;
+        const nr = row - dirR * i;
+        const nc = col - dirC * i;
+        if (nr < 0 || nr >= BOARD_SIZE || nc < 0 || nc >= BOARD_SIZE) break;
+        if (board[nr][nc] !== player) break;
+        backward++;
       }
 
-      console.log(`📏 ${name}: ${count} pieces in line`);
+      const count = 1 + forward + backward;
+      const beforeMax = Math.max(forward, backward);
 
-      if (count >= 4) {
-        // Check what was there BEFORE this move
-        const boardBefore = board.map((r, rIdx) =>
-          r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
-        );
-
-        // Check if there was already a COMPLETE 4-in-a-row line that would have scored points
-        let hadScoringLine = false;
-
-        // Check all possible 4-length segments in this direction that could overlap with our current line
-        const backwardCount = Math.min(3, count - 1); // How far back we need to check
-        const forwardCount = Math.min(3, count - 1); // How far forward we need to check
-
-        for (
-          let startOffset = -backwardCount;
-          startOffset <= forwardCount - 3;
-          startOffset++
-        ) {
-          const segmentStartRow = row + dirR * startOffset;
-          const segmentStartCol = col + dirC * startOffset;
-
-          // Check if this 4-segment would have scored before our move
-          if (
-            wouldLineScore(
-              boardBefore,
-              segmentStartRow,
-              segmentStartCol,
-              dirR,
-              dirC,
-              4,
-              player
-            )
-          ) {
-            hadScoringLine = true;
-            console.log(
-              `📋 Found existing 4-in-a-row that scored before this move`
-            );
-            break;
-          }
-        }
-
-        // Award points based on what we found
-        if (count >= 5 && hadScoringLine) {
-          // Had a scoring 4-in-a-row before, now has 5+ = extending existing line = +1 point
+      if (count >= 5) {
+        if (beforeMax >= 5) {
+        } else if (beforeMax === 4) {
           totalPoints += 1;
-          console.log(
-            `✅ ${player} extended existing scoring 4-in-a-row to 5+ in ${name}: +1 point`
-          );
-        } else if (count >= 5 && !hadScoringLine) {
-          // No scoring 4-in-a-row before, now has 5+ = new 5-in-a-row = +2 points
+        } else {
           totalPoints += 2;
-          console.log(
-            `✅ ${player} created NEW 5-in-a-row in ${name}: +2 points`
-          );
-        } else if (count === 4 && !hadScoringLine) {
-          // No scoring line before, now has 4 = new 4-in-a-row = +1 point
+        }
+      } else if (count === 4) {
+        if (beforeMax >= 4) {
+        } else {
           totalPoints += 1;
-          console.log(
-            `✅ ${player} created NEW 4-in-a-row in ${name}: +1 point`
-          );
         }
-        // If count === 4 and hadScoringLine, no additional points (already scored for this line)
-        else if (count === 4 && hadScoringLine) {
-          console.log(
-            `📝 ${player} has 4-in-a-row in ${name} but already scored for this line (no points)`
-          );
-        }
-      }
-      // Lines of 3 or less get no points
-      else if (count >= 3) {
-        console.log(
-          `📝 ${player} has ${count}-in-a-row in ${name} (no points)`
-        );
       }
     }
 
-    console.log(`🏆 TOTAL POINTS AWARDED: ${totalPoints}`);
     return totalPoints;
   };
 
@@ -321,11 +191,9 @@ function GameContent() {
             Math.abs(col - last.col) <= 1
           )
             continue;
-
           const testBoard = board.map((r) => [...r]);
           testBoard[row][col] = player;
           const pointsGained = checkForPoints(testBoard, row, col, player);
-
           if (pointsGained > 0) return true;
         }
       }
@@ -333,7 +201,6 @@ function GameContent() {
     return false;
   };
 
-  // AI Logic
   const evaluatePosition = (board: string[][], player: "X" | "O") => {
     let score = 0;
     const opponent = player === "X" ? "O" : "X";
@@ -387,7 +254,7 @@ function GameContent() {
     player: "X" | "O",
     lastMove: any
   ) => {
-    const validMoves = [];
+    const validMoves: { row: number; col: number }[] = [];
     const last = lastMove[player];
 
     for (let row = 0; row < BOARD_SIZE; row++) {
@@ -440,7 +307,6 @@ function GameContent() {
             const testBoard = gameState.board.map((row) => [...row]);
             testBoard[move.row][move.col] = "O";
             const points = checkForPoints(testBoard, move.row, move.col, "O");
-
             if (points > bestScore) {
               bestScore = points;
               bestMove = move;
@@ -457,7 +323,6 @@ function GameContent() {
           for (const move of validMoves) {
             const testBoard = gameState.board.map((row) => [...row]);
             testBoard[move.row][move.col] = "O";
-
             const immediatePoints = checkForPoints(
               testBoard,
               move.row,
@@ -534,12 +399,6 @@ function GameContent() {
     const newBoard = gameState.board.map((row) => [...row]);
     newBoard[row][col] = gameState.currentPlayer;
 
-    console.log(
-      `🎮 MOVE #${newMoveCount}: ${gameState.currentPlayer} places at (${row}, ${col})`
-    );
-    console.log(`🎮 BEFORE: X=${gameState.score.X}, O=${gameState.score.O}`);
-
-    // Calculate points gained from this specific move - ONLY CALL ONCE!
     const pointsGained = checkForPoints(
       newBoard,
       row,
@@ -547,22 +406,13 @@ function GameContent() {
       gameState.currentPlayer
     );
 
-    console.log(`🎮 POINTS GAINED: ${pointsGained}`);
-
-    // Add points to current score - ONLY ADD ONCE!
     const newScore = { ...gameState.score };
     newScore[gameState.currentPlayer] += pointsGained;
-
-    console.log(`🎮 AFTER: X=${newScore.X}, O=${newScore.O}`);
 
     const newLastMove = { ...gameState.lastMove };
     newLastMove[gameState.currentPlayer] = { row, col };
 
-    // Check game end conditions
     if (gameState.bonusTurn && gameState.currentPlayer === "O") {
-      console.log(
-        `🎮 BONUS TURN END - Final scores: X=${newScore.X}, O=${newScore.O}`
-      );
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -584,9 +434,6 @@ function GameContent() {
       (!xCanMove && !oCanMove) ||
       !stillPointsPossible
     ) {
-      console.log(
-        `🎮 GAME END - Final scores: X=${newScore.X}, O=${newScore.O}`
-      );
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -599,9 +446,6 @@ function GameContent() {
     }
 
     if (gameState.currentPlayer === "X" && !xCanMove && oCanMove) {
-      console.log(
-        `🎮 BONUS TURN for O - Scores: X=${newScore.X}, O=${newScore.O}`
-      );
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -619,7 +463,6 @@ function GameContent() {
     }
 
     if (gameState.currentPlayer === "X" && !oCanMove) {
-      console.log(`🎮 X WINS - Final scores: X=${newScore.X}, O=${newScore.O}`);
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -632,7 +475,6 @@ function GameContent() {
     }
 
     const nextPlayer = gameState.currentPlayer === "X" ? "O" : "X";
-    console.log(`🎮 TURN SWITCH: ${gameState.currentPlayer} -> ${nextPlayer}`);
 
     setGameState((prev) => ({
       ...prev,
@@ -668,7 +510,6 @@ function GameContent() {
       }
     }
 
-    // Highlight last moves
     const lastX = gameState.lastMove.X;
     const lastO = gameState.lastMove.O;
 
@@ -685,7 +526,6 @@ function GameContent() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="container mx-auto px-4 py-4 sm:py-8">
-        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
           <Link href="/">
             <Button
@@ -750,7 +590,6 @@ function GameContent() {
         </div>
 
         <div className="grid lg:grid-cols-4 gap-6">
-          {/* Game Board */}
           <div className="lg:col-span-3">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-4">
@@ -764,7 +603,6 @@ function GameContent() {
               </CardHeader>
               <CardContent className="p-4 sm:p-6">
                 <div className="relative">
-                  {/* Game Over Overlay */}
                   {winner && (
                     <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 rounded-lg">
                       <div className="bg-slate-800 border border-slate-600 text-white rounded-xl p-6 text-center max-w-xs w-full mx-4">
@@ -791,7 +629,6 @@ function GameContent() {
                     </div>
                   )}
 
-                  {/* Board */}
                   <div className="grid grid-cols-5 gap-2 max-w-md mx-auto">
                     {gameState.board.map((row, rowIndex) =>
                       row.map((cell, colIndex) => (
@@ -813,9 +650,7 @@ function GameContent() {
             </Card>
           </div>
 
-          {/* Sidebar */}
           <div className="space-y-4">
-            {/* Current Score */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-white text-lg">
@@ -848,7 +683,6 @@ function GameContent() {
               </CardContent>
             </Card>
 
-            {/* Game Stats */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-white text-lg flex items-center gap-2">
@@ -876,7 +710,6 @@ function GameContent() {
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-white text-lg">Acties</CardTitle>
