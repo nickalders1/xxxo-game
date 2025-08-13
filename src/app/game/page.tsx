@@ -143,11 +143,12 @@ function GameContent() {
 
       console.log(`📏 ${name}: found ${count} in a row`);
 
+      // FIXED LOGIC: Only award points for the LONGEST line in this direction
+      // Don't count overlapping shorter lines
       if (count >= 5) {
         console.log(`🎯 Found 5+ in a row in ${name}!`);
 
-        // NEW LOGIC: Check if there was already a COMPLETE 4-in-a-row line
-        // We need to check if removing our piece leaves a complete 4-in-a-row somewhere
+        // Check if there was already a COMPLETE 4-in-a-row line
         const boardBefore = board.map((r, rIdx) =>
           r.map((cell, cIdx) => (rIdx === row && cIdx === col ? "" : cell))
         );
@@ -166,6 +167,7 @@ function GameContent() {
             if (
               checkRow >= 0 &&
               checkRow < BOARD_SIZE &&
+              checkCol >= 0 &&
               checkCol < BOARD_SIZE
             ) {
               if (boardBefore[checkRow][checkCol] === player) {
@@ -192,25 +194,25 @@ function GameContent() {
           console.log(
             `✅ ${player} extended complete 4-in-a-row to 5-in-a-row in ${name}: +1 point`
           );
-          alert(`${player} extended complete 4→5 in ${name}: +1 point`);
         } else {
           // Creating new 5-in-a-row = 2 points
           totalPoints += 2;
           console.log(
             `✅ ${player} created new 5-in-a-row in ${name}: +2 points`
           );
-          alert(`${player} created NEW 5-in-a-row in ${name}: +2 points`);
         }
+
+        // IMPORTANT: Don't check for 4-in-a-row in this direction since we already have 5+
+        continue;
       } else if (count === 4) {
-        // Creating 4-in-a-row = 1 point
+        // Creating 4-in-a-row = 1 point (only if we didn't already find 5+ in this direction)
         totalPoints += 1;
         console.log(`✅ ${player} created 4-in-a-row in ${name}: +1 point`);
-        alert(`${player} created 4-in-a-row in ${name}: +1 point`);
       }
+      // Don't award points for lines shorter than 4
     }
 
     console.log(`🏆 Total points for ${player}: ${totalPoints}`);
-    alert(`TOTAL POINTS for ${player}: ${totalPoints}`);
     return totalPoints;
   };
 
@@ -470,7 +472,6 @@ function GameContent() {
     newBoard[row][col] = gameState.currentPlayer;
 
     console.log(`🎮 About to check points for ${gameState.currentPlayer}`);
-    alert(`About to check points for ${gameState.currentPlayer}`);
 
     // Calculate points gained from this specific move
     const pointsGained = checkForPoints(
@@ -481,7 +482,6 @@ function GameContent() {
     );
 
     console.log(`🎮 Points gained: ${pointsGained}`);
-    alert(`Points gained: ${pointsGained}`);
 
     // Add points to current score
     const newScore = { ...gameState.score };
