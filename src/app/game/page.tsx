@@ -175,18 +175,18 @@ function GameContent() {
           } else break;
         }
 
-        // CHECK 1: Was there exactly 4 before? Then +1 point (extending 4 to 5)
-        if (countBefore === 4) {
+        // CHECK 1: Was there less than 4 before? Then +2 points (NEW 5-in-a-row)
+        if (countBefore < 4) {
+          totalPoints += 2;
+          console.log(
+            `Player ${player} created NEW 5-in-a-row (was ${countBefore} before): +2 points`
+          );
+        }
+        // CHECK 2: Was there exactly 4 before? Then +1 point (extending 4 to 5)
+        else if (countBefore === 4) {
           totalPoints += 1;
           console.log(
             `Player ${player} extended 4-in-a-row to 5-in-a-row: +1 point`
-          );
-        }
-        // CHECK 2: Was there less than 4 before? Then +2 points (new 5-in-a-row)
-        else {
-          totalPoints += 2;
-          console.log(
-            `Player ${player} created new 5-in-a-row (was ${countBefore} before): +2 points`
           );
         }
       } else if (count === 4) {
