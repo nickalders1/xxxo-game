@@ -84,8 +84,24 @@ export default function OnlinePage() {
       return;
     }
 
-    if (!socket || !connected) {
-      setError("Niet verbonden met server");
+    // Probeer verbinding te maken als we niet verbonden zijn
+    if (!connected && socket) {
+      socket.connect();
+      setError("Verbinding maken...");
+      setTimeout(() => {
+        if (socket.connected) {
+          socket.emit("join-queue", { playerName: playerName.trim() });
+          localStorage.setItem("playerName", playerName.trim());
+          setError("");
+        } else {
+          setError("Kan geen verbinding maken met server");
+        }
+      }, 1000);
+      return;
+    }
+
+    if (!socket) {
+      setError("Socket niet beschikbaar");
       return;
     }
 
@@ -186,11 +202,11 @@ export default function OnlinePage() {
                   </p>
                   <Button
                     onClick={joinQueue}
-                    disabled={!connected || !playerName.trim()}
+                    disabled={!playerName.trim() || isSearching}
                     className="w-full bg-purple-500 hover:bg-purple-600 h-12"
                   >
                     <Play className="mr-2 h-5 w-5" />
-                    Zoek Spel
+                    {!connected ? "Verbinding maken..." : "Zoek Spel"}
                   </Button>
                 </div>
               ) : (

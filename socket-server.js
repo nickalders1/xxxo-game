@@ -93,11 +93,11 @@ function checkForPoints(board, row, col, player) {
       } else break;
     }
 
-    // Award points for longest line in this direction
+    // Award points for longest line in this direction (NOT cumulative)
     if (count >= 5) {
-      totalPoints += 2;
+      totalPoints = Math.max(totalPoints, 2); // Max 2 points for 5 in a row
     } else if (count >= 4) {
-      totalPoints += 1;
+      totalPoints = Math.max(totalPoints, 1); // Max 1 point for 4 in a row
     }
   }
 
