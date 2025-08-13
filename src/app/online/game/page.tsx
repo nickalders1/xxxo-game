@@ -53,9 +53,21 @@ function OnlineGameContent() {
   useEffect(() => {
     console.log("Game page loaded with:", { gameId, playerName }); // Debug log
 
-    if (!gameId || !playerName) {
-      console.log("Missing parameters, redirecting to lobby");
-      window.location.href = "/online";
+    // Try to get name from localStorage if URL parameter is empty
+    let actualPlayerName = playerName;
+    if (!actualPlayerName || actualPlayerName.trim() === "") {
+      actualPlayerName = localStorage.getItem("playerName");
+      console.log("Got name from localStorage:", actualPlayerName);
+    }
+
+    if (!gameId || !actualPlayerName) {
+      console.log("Missing parameters, redirecting to lobby", {
+        gameId,
+        actualPlayerName,
+      });
+      setTimeout(() => {
+        window.location.href = "/online";
+      }, 2000);
       return;
     }
 
@@ -65,7 +77,11 @@ function OnlineGameContent() {
 
     socketConnection.on("connect", () => {
       setConnected(true);
-      socketConnection.emit("join-game", { gameId, playerName });
+      console.log("Connected, joining game with name:", actualPlayerName);
+      socketConnection.emit("join-game", {
+        gameId,
+        playerName: actualPlayerName,
+      });
     });
 
     socketConnection.on("disconnect", () => {
@@ -74,6 +90,7 @@ function OnlineGameContent() {
     });
 
     socketConnection.on("game-joined", ({ game, yourSymbol }) => {
+      console.log("Game joined successfully:", { game, yourSymbol });
       setGame(game);
       setMySymbol(yourSymbol);
       updateStatusMessage(game);
@@ -99,6 +116,7 @@ function OnlineGameContent() {
     });
 
     socketConnection.on("error", ({ message }) => {
+      console.log("Socket error:", message);
       setStatusMessage(`Fout: ${message}`);
     });
 
@@ -124,7 +142,7 @@ function OnlineGameContent() {
     } else {
       const currentPlayerData =
         gameData.players[gameData.gameState.currentPlayer];
-      if (currentPlayerData?.id === mySymbol) {
+      if (currentPlayerData?.symbol === mySymbol) {
         setStatusMessage("Jouw beurt!");
       } else {
         setStatusMessage(`${currentPlayerData?.name} is aan de beurt`);
@@ -190,6 +208,12 @@ function OnlineGameContent() {
           <CardContent className="text-center p-6">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
             <p className="text-white mb-4">{statusMessage}</p>
+            <div className="text-xs text-slate-400 mb-4">
+              Game ID: {gameId}
+              <br />
+              Player:{" "}
+              {playerName || localStorage.getItem("playerName") || "Unknown"}
+            </div>
             <Link href="/online">
               <Button className="bg-purple-500 hover:bg-purple-600">
                 Terug naar Lobby
