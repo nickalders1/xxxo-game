@@ -139,10 +139,9 @@ function GameContent() {
         } else break;
       }
 
-      // Now check if this exact line already had 4 pieces before we placed our piece
-      // We do this by checking if removing our piece still gives us 4 in a row
+      // Now award points based on what we achieved
       if (count >= 5) {
-        // Check if there was already a 4-in-a-row in this exact line before our move
+        // We have 5+ in a row, but was there already a 4-in-a-row before?
         const boardBefore = board.map((r) => [...r]);
         boardBefore[row][col] = ""; // Remove our piece
 
@@ -176,19 +175,30 @@ function GameContent() {
           } else break;
         }
 
-        // If we had exactly 4 before and now have 5+, award 1 point (extending 4 to 5)
-        // If we had less than 4 before and now have 5+, award 2 points (new 5-in-a-row)
+        // CHECK 1: Was there exactly 4 before? Then +1 point (extending 4 to 5)
         if (countBefore === 4) {
-          totalPoints += 1; // Extending 4 to 5
-        } else {
-          totalPoints += 2; // New 5-in-a-row
+          totalPoints += 1;
+          console.log(
+            `Player ${player} extended 4-in-a-row to 5-in-a-row: +1 point`
+          );
+        }
+        // CHECK 2: Was there less than 4 before? Then +2 points (new 5-in-a-row)
+        else {
+          totalPoints += 2;
+          console.log(
+            `Player ${player} created new 5-in-a-row (was ${countBefore} before): +2 points`
+          );
         }
       } else if (count === 4) {
         // New 4-in-a-row
         totalPoints += 1;
+        console.log(`Player ${player} created 4-in-a-row: +1 point`);
       }
     }
 
+    console.log(
+      `Total points for ${player} at (${row}, ${col}): ${totalPoints}`
+    );
     return totalPoints;
   };
 
