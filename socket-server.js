@@ -50,8 +50,8 @@ function isNextToLastMove(row, col, player, lastMove) {
   return Math.abs(row - last.row) <= 1 && Math.abs(col - last.col) <= 1;
 }
 
-// SUPER SIMPLE scoring - find all unique lines and score them
-function calculateTotalScore(board, player) {
+// Calculate points gained from placing a piece at this specific position
+function checkForPoints(board, row, col, player) {
   const directions = [
     { r: 0, c: 1 }, // horizontal
     { r: 1, c: 0 }, // vertical
@@ -59,52 +59,49 @@ function calculateTotalScore(board, player) {
     { r: 1, c: -1 }, // diagonal /
   ];
 
-  const uniqueLines = new Set();
-  let totalScore = 0;
+  let totalPoints = 0;
 
-  // Check every possible starting position
-  for (let startRow = 0; startRow < BOARD_SIZE; startRow++) {
-    for (let startCol = 0; startCol < BOARD_SIZE; startCol++) {
-      for (const { r, c } of directions) {
-        // Count consecutive pieces from this starting position
-        let count = 0;
-        let row = startRow;
-        let col = startCol;
-        const positions = [];
+  for (const { r, c } of directions) {
+    // Count in both directions from the placed piece
+    let count = 1; // Start with 1 for the piece we just placed
 
-        while (
-          row >= 0 &&
-          row < BOARD_SIZE &&
-          col >= 0 &&
-          col < BOARD_SIZE &&
-          board[row][col] === player
-        ) {
-          count++;
-          positions.push(`${row},${col}`);
-          row += r;
-          col += c;
-        }
+    // Count forward
+    for (let i = 1; i < 5; i++) {
+      const newRow = row + r * i;
+      const newCol = col + c * i;
+      if (
+        newRow >= 0 &&
+        newRow < BOARD_SIZE &&
+        newCol < BOARD_SIZE &&
+        board[newRow][newCol] === player
+      ) {
+        count++;
+      } else break;
+    }
 
-        // Only score lines of 4+ pieces
-        if (count >= 4) {
-          // Create unique identifier for this line
-          const lineId = `${r},${c}:${positions.sort().join("-")}`;
+    // Count backward
+    for (let i = 1; i < 5; i++) {
+      const newRow = row - r * i;
+      const newCol = col - c * i;
+      if (
+        newRow >= 0 &&
+        newRow < BOARD_SIZE &&
+        newCol < BOARD_SIZE &&
+        board[newRow][newCol] === player
+      ) {
+        count++;
+      } else break;
+    }
 
-          if (!uniqueLines.has(lineId)) {
-            uniqueLines.add(lineId);
-
-            if (count >= 5) {
-              totalScore += 2; // 2 points for 5+ in a row
-            } else {
-              totalScore += 1; // 1 point for exactly 4 in a row
-            }
-          }
-        }
-      }
+    // Award points based on line length
+    if (count >= 5) {
+      totalPoints += 2; // 2 points for 5+ in a row
+    } else if (count >= 4) {
+      totalPoints += 1; // 1 point for 4 in a row
     }
   }
 
-  return totalScore;
+  return totalPoints;
 }
 
 function hasValidMove(board, player, lastMove) {
@@ -150,10 +147,9 @@ function anyPotentialPoints(board, lastMove) {
 
         const testBoard = board.map((r) => [...r]);
         testBoard[row][col] = player;
-        const newScore = calculateTotalScore(testBoard, player);
-        const currentScore = calculateTotalScore(board, player);
+        const pointsGained = checkForPoints(testBoard, row, col, player);
 
-        if (newScore > currentScore) return true;
+        if (pointsGained > 0) return true;
       }
     }
   }
@@ -317,10 +313,12 @@ io.on("connection", (socket) => {
     const newBoard = board.map((row) => [...row]);
     newBoard[row][col] = currentPlayer;
 
-    // Calculate new total scores for both players
-    const newScoreX = calculateTotalScore(newBoard, "X");
-    const newScoreO = calculateTotalScore(newBoard, "O");
-    const newScore = { X: newScoreX, O: newScoreO };
+    // Calculate points gained from this specific move
+    const pointsGained = checkForPoints(newBoard, row, col, currentPlayer);
+
+    // Add points to current score
+    const newScore = { ...game.gameState.score };
+    newScore[currentPlayer] += pointsGained;
 
     const newLastMove = { ...lastMove };
     newLastMove[currentPlayer] = { row, col };
@@ -329,6 +327,7 @@ io.on("connection", (socket) => {
     game.gameState.score = newScore;
     game.gameState.lastMove = newLastMove;
 
+    // Rest stays the same...
     const xCanMove = hasValidMove(newBoard, "X", newLastMove);
     const oCanMove = hasValidMove(newBoard, "O", newLastMove);
     const stillPointsPossible = anyPotentialPoints(newBoard, newLastMove);
