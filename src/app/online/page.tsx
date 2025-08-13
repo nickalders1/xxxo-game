@@ -53,9 +53,10 @@ export default function OnlinePage() {
 
     socketConnection.on("match-found", ({ gameId }) => {
       setIsSearching(false);
-      window.location.href = `/online/game?id=${gameId}&name=${encodeURIComponent(
-        playerName
-      )}`;
+      // Fix: Ensure playerName is properly encoded and not empty
+      const encodedName = encodeURIComponent(playerName.trim());
+      console.log(`Redirecting to game with name: ${encodedName}`); // Debug log
+      window.location.href = `/online/game?id=${gameId}&name=${encodedName}`;
     });
 
     socketConnection.on("queue-left", () => {

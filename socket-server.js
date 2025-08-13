@@ -213,9 +213,12 @@ io.on("connection", (socket) => {
       const game = new Game(gameId, player, opponent);
       games.set(gameId, game);
 
+      console.log(`Sending match-found to ${player.name} (${player.id})`);
       socket.emit("match-found", { gameId });
+
       const opponentSocket = io.sockets.sockets.get(opponent.id);
       if (opponentSocket) {
+        console.log(`Sending match-found to ${opponent.name} (${opponent.id})`);
         opponentSocket.emit("match-found", { gameId });
       }
 

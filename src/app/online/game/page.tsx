@@ -51,7 +51,10 @@ function OnlineGameContent() {
   const [gameTime, setGameTime] = useState(0);
 
   useEffect(() => {
+    console.log("Game page loaded with:", { gameId, playerName }); // Debug log
+
     if (!gameId || !playerName) {
+      console.log("Missing parameters, redirecting to lobby");
       window.location.href = "/online";
       return;
     }
