@@ -28,6 +28,8 @@ interface GameState {
   bonusTurn: boolean;
 }
 
+type Move = { row: number; col: number };
+
 function GameContent() {
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") || "local";
@@ -63,7 +65,13 @@ function GameContent() {
     ) {
       makeAiMove();
     }
-  }, [gameState.currentPlayer, gameState.gameActive, mode, isAiThinking]);
+  }, [
+    gameState.currentPlayer,
+    gameState.gameActive,
+    mode,
+    isAiThinking,
+    aiDifficulty,
+  ]);
 
   const initializeGame = () => {
     setGameState({
@@ -97,15 +105,13 @@ function GameContent() {
     player: string
   ) => {
     const directions = [
-      { r: 0, c: 1, name: "horizontal" },
-      { r: 1, c: 0, name: "vertical" },
-      { r: 1, c: 1, name: "diagonal \\" },
-      { r: 1, c: -1, name: "diagonal /" },
+      { r: 0, c: 1 },
+      { r: 1, c: 0 },
+      { r: 1, c: 1 },
+      { r: 1, c: -1 },
     ];
-
     let totalPoints = 0;
-
-    for (const { r: dirR, c: dirC, name } of directions) {
+    for (const { r: dirR, c: dirC } of directions) {
       let forward = 0;
       for (let i = 1; i < 5; i++) {
         const nr = row + dirR * i;
@@ -114,7 +120,6 @@ function GameContent() {
         if (board[nr][nc] !== player) break;
         forward++;
       }
-
       let backward = 0;
       for (let i = 1; i < 5; i++) {
         const nr = row - dirR * i;
@@ -123,10 +128,8 @@ function GameContent() {
         if (board[nr][nc] !== player) break;
         backward++;
       }
-
       const count = 1 + forward + backward;
       const beforeMax = Math.max(forward, backward);
-
       if (count >= 5) {
         if (beforeMax >= 5) {
         } else if (beforeMax === 4) {
@@ -141,7 +144,6 @@ function GameContent() {
         }
       }
     }
-
     return totalPoints;
   };
 
@@ -183,10 +185,8 @@ function GameContent() {
       { r: 1, c: 1 },
       { r: 1, c: -1 },
     ];
-
     const inBounds = (r: number, c: number) =>
       r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
-
     for (const { r: dr, c: dc } of dirs) {
       for (let sr = 0; sr < BOARD_SIZE; sr++) {
         for (let sc = 0; sc < BOARD_SIZE; sc++) {
@@ -204,7 +204,6 @@ function GameContent() {
             }
             if (hasEmpty && (!hasO || !hasX)) return true;
           }
-
           const er5r = sr + dr * 4;
           const er5c = sc + dc * 4;
           if (inBounds(er5r, er5c)) {
@@ -222,21 +221,18 @@ function GameContent() {
         }
       }
     }
-
     return false;
   };
 
   const evaluatePosition = (board: string[][], player: "X" | "O") => {
     let score = 0;
     const opponent = player === "X" ? "O" : "X";
-
     const directions = [
       { r: 0, c: 1 },
       { r: 1, c: 0 },
       { r: 1, c: 1 },
       { r: 1, c: -1 },
     ];
-
     for (let row = 0; row < BOARD_SIZE; row++) {
       for (let col = 0; col < BOARD_SIZE; col++) {
         for (const direction of directions) {
@@ -244,11 +240,9 @@ function GameContent() {
           let playerCount = 0;
           let opponentCount = 0;
           let emptyCount = 0;
-
           for (let i = 0; i < 5; i++) {
             const newRow = row + r * i;
             const newCol = col + c * i;
-
             if (
               newRow >= 0 &&
               newRow < BOARD_SIZE &&
@@ -260,17 +254,13 @@ function GameContent() {
               else emptyCount++;
             }
           }
-
-          if (opponentCount === 0 && playerCount > 0) {
+          if (opponentCount === 0 && playerCount > 0)
             score += playerCount * playerCount;
-          }
-          if (playerCount === 0 && opponentCount > 0) {
+          if (playerCount === 0 && opponentCount > 0)
             score -= opponentCount * opponentCount;
-          }
         }
       }
     }
-
     return score;
   };
 
@@ -279,9 +269,8 @@ function GameContent() {
     player: "X" | "O",
     lastMove: any
   ) => {
-    const validMoves: { row: number; col: number }[] = [];
+    const validMoves: Move[] = [];
     const last = lastMove[player];
-
     for (let row = 0; row < BOARD_SIZE; row++) {
       for (let col = 0; col < BOARD_SIZE; col++) {
         if (
@@ -294,8 +283,108 @@ function GameContent() {
         }
       }
     }
-
     return validMoves;
+  };
+
+  const cloneBoard = (board: string[][]) => board.map((r) => [...r]);
+  const opponentOf = (p: "X" | "O") => (p === "X" ? "O" : "X");
+
+  const evalBoardForO = (
+    board: string[][],
+    score: { X: number; O: number },
+    lastMove: GameState["lastMove"]
+  ) => {
+    const scoreDiff = (score.O - score.X) * 120;
+    const patternDiff =
+      evaluatePosition(board, "O") - evaluatePosition(board, "X");
+    const mobility =
+      getValidMoves(board, "O", lastMove).length -
+      getValidMoves(board, "X", lastMove).length;
+    return scoreDiff + patternDiff + mobility * 2;
+  };
+
+  const terminalAfter = (
+    board: string[][],
+    score: { X: number; O: number },
+    lastMove: any
+  ) => {
+    const xCanMove = hasValidMove(board, "X", lastMove);
+    const oCanMove = hasValidMove(board, "O", lastMove);
+    const stillPoints = anyPotentialPoints(board);
+    const empty = countEmptyCells(board);
+    if (empty <= 1 || (!xCanMove && !oCanMove) || !stillPoints) {
+      if (score.X > score.O) return { done: true, value: -99999 };
+      if (score.O > score.X) return { done: true, value: 99999 };
+      return { done: true, value: 0 };
+    }
+    return { done: false, value: 0 };
+  };
+
+  const minimax = (
+    board: string[][],
+    lastMove: GameState["lastMove"],
+    score: { X: number; O: number },
+    current: "X" | "O",
+    depth: number,
+    alpha: number,
+    beta: number
+  ): { value: number; move?: Move } => {
+    const term = terminalAfter(board, score, lastMove);
+    if (term.done || depth === 0) {
+      return {
+        value: evalBoardForO(board, score, lastMove) + Math.random() * 0.5,
+      };
+    }
+    if (current === "O") {
+      let bestVal = -Infinity;
+      let bestMove: Move | undefined;
+      const moves = getValidMoves(board, "O", lastMove);
+      for (const m of moves) {
+        const nb = cloneBoard(board);
+        nb[m.row][m.col] = "O";
+        const pts = checkForPoints(nb, m.row, m.col, "O");
+        const sc = { X: score.X, O: score.O + pts };
+        const lm = { ...lastMove, O: { row: m.row, col: m.col } };
+        const res = minimax(nb, lm, sc, "X", depth - 1, alpha, beta);
+        if (res.value > bestVal) {
+          bestVal = res.value;
+          bestMove = m;
+        }
+        alpha = Math.max(alpha, bestVal);
+        if (beta <= alpha) break;
+      }
+      return { value: bestVal, move: bestMove };
+    } else {
+      let bestVal = Infinity;
+      const moves = getValidMoves(board, "X", lastMove);
+      for (const m of moves) {
+        const nb = cloneBoard(board);
+        nb[m.row][m.col] = "X";
+        const pts = checkForPoints(nb, m.row, m.col, "X");
+        const sc = { X: score.X + pts, O: score.O };
+        const lm = { ...lastMove, X: { row: m.row, col: m.col } };
+        const res = minimax(nb, lm, sc, "O", depth - 1, alpha, beta);
+        if (res.value < bestVal) {
+          bestVal = res.value;
+        }
+        beta = Math.min(beta, bestVal);
+        if (beta <= alpha) break;
+      }
+      return { value: bestVal };
+    }
+  };
+
+  const centerBias = (m: Move) => {
+    const cx = (BOARD_SIZE - 1) / 2;
+    return -Math.abs(m.row - cx) - Math.abs(m.col - cx);
+  };
+
+  const pickFromTop = (scored: { move: Move; score: number }[]) => {
+    if (scored.length === 0) return null;
+    scored.sort((a, b) => b.score - a.score);
+    const best = scored[0].score;
+    const band = scored.filter((s) => s.score >= best - 1.5);
+    return band[Math.floor(Math.random() * band.length)].move;
   };
 
   const makeAiMove = () => {
@@ -305,7 +394,6 @@ function GameContent() {
       mode !== "ai"
     )
       return;
-
     setIsAiThinking(true);
     setStatusMessage("AI denkt na...");
 
@@ -321,60 +409,91 @@ function GameContent() {
           return;
         }
 
-        let bestMove = validMoves[0];
+        let chosen: Move | null = null;
 
         if (aiDifficulty === "easy") {
-          bestMove = validMoves[Math.floor(Math.random() * validMoves.length)];
+          const greedy = validMoves
+            .map((m) => {
+              const tb = cloneBoard(gameState.board);
+              tb[m.row][m.col] = "O";
+              const p = checkForPoints(tb, m.row, m.col, "O");
+              return { move: m, score: p + Math.random() };
+            })
+            .filter((x) => x.score > 0);
+          chosen =
+            greedy.length > 0
+              ? pickFromTop(greedy)
+              : validMoves[Math.floor(Math.random() * validMoves.length)];
         } else if (aiDifficulty === "medium") {
-          let bestScore = -1;
-
-          for (const move of validMoves) {
-            const testBoard = gameState.board.map((row) => [...row]);
-            testBoard[move.row][move.col] = "O";
-            const points = checkForPoints(testBoard, move.row, move.col, "O");
-            if (points > bestScore) {
-              bestScore = points;
-              bestMove = move;
+          let scored: { move: Move; score: number }[] = [];
+          for (const m of validMoves) {
+            const tb = cloneBoard(gameState.board);
+            tb[m.row][m.col] = "O";
+            const gain = checkForPoints(tb, m.row, m.col, "O");
+            const oppMoves = getValidMoves(tb, "X", {
+              ...gameState.lastMove,
+              O: { row: m.row, col: m.col },
+            });
+            let oppBest = 0;
+            for (const om of oppMoves) {
+              const t2 = cloneBoard(tb);
+              t2[om.row][om.col] = "X";
+              const opg = checkForPoints(t2, om.row, om.col, "X");
+              if (opg > oppBest) oppBest = opg;
             }
+            const score =
+              gain * 120 -
+              oppBest * 110 +
+              (evaluatePosition(tb, "O") - evaluatePosition(tb, "X")) +
+              centerBias(m) * 2 +
+              Math.random();
+            scored.push({ move: m, score });
           }
-
-          if (bestScore === 0 && Math.random() < 0.3) {
-            bestMove =
-              validMoves[Math.floor(Math.random() * validMoves.length)];
-          }
+          chosen = pickFromTop(scored);
+          if (!chosen)
+            chosen = validMoves[Math.floor(Math.random() * validMoves.length)];
         } else {
-          let bestScore = Number.NEGATIVE_INFINITY;
-
-          for (const move of validMoves) {
-            const testBoard = gameState.board.map((row) => [...row]);
-            testBoard[move.row][move.col] = "O";
-            const immediatePoints = checkForPoints(
-              testBoard,
-              move.row,
-              move.col,
-              "O"
-            );
-            const positionScore = evaluatePosition(testBoard, "O");
-            const totalScore = immediatePoints * 100 + positionScore;
-
-            if (totalScore > bestScore) {
-              bestScore = totalScore;
-              bestMove = move;
-            }
+          const res = minimax(
+            gameState.board,
+            gameState.lastMove,
+            { ...gameState.score },
+            "O",
+            2,
+            -Infinity,
+            Infinity
+          );
+          if (res.move) chosen = res.move;
+          if (!chosen) {
+            const backup = validMoves.map((m) => {
+              const tb = cloneBoard(gameState.board);
+              tb[m.row][m.col] = "O";
+              const sc =
+                checkForPoints(tb, m.row, m.col, "O") * 120 +
+                (evaluatePosition(tb, "O") - evaluatePosition(tb, "X")) +
+                centerBias(m) +
+                Math.random();
+              return { move: m, score: sc };
+            });
+            chosen =
+              pickFromTop(backup) ||
+              validMoves[Math.floor(Math.random() * validMoves.length)];
           }
         }
 
         setIsAiThinking(false);
-        handleMove(bestMove.row, bestMove.col);
+        if (chosen) handleMove(chosen.row, chosen.col);
       },
-      aiDifficulty === "easy" ? 500 : aiDifficulty === "medium" ? 1000 : 1500
+      aiDifficulty === "easy"
+        ? 400
+        : aiDifficulty === "medium"
+        ? 800
+        : 900 + Math.floor(Math.random() * 400)
     );
   };
 
   const declareWinner = (newScore: { X: number; O: number }) => {
     let winnerText = "";
     const newStats = { ...gameStats };
-
     if (newScore.X > newScore.O) {
       winnerText = mode === "ai" ? "Jij wint! 🎉" : "Speler X wint! 🎉";
       newStats.X++;
@@ -385,7 +504,6 @@ function GameContent() {
       winnerText = "Gelijkspel! 🤝";
       newStats.ties++;
     }
-
     setWinner(winnerText);
     setGameStats(newStats);
     setGameState((prev) => ({ ...prev, gameActive: false }));
@@ -393,7 +511,6 @@ function GameContent() {
 
   const handleMove = (row: number, col: number) => {
     if (!gameState.gameActive) return;
-
     if (gameState.board[row][col] !== "") {
       setStatusMessage("Dit vakje is al bezet!");
       setTimeout(() => {
@@ -402,10 +519,9 @@ function GameContent() {
             ? "Jouw beurt (X)"
             : `Speler ${gameState.currentPlayer} is aan de beurt`;
         setStatusMessage(currentMsg);
-      }, 2000);
+      }, 1200);
       return;
     }
-
     if (isNextToLastMove(row, col, gameState.currentPlayer)) {
       setStatusMessage("Je mag niet naast je laatste zet plaatsen!");
       setTimeout(() => {
@@ -414,14 +530,14 @@ function GameContent() {
             ? "Jouw beurt (X)"
             : `Speler ${gameState.currentPlayer} is aan de beurt`;
         setStatusMessage(currentMsg);
-      }, 2000);
+      }, 1200);
       return;
     }
 
     const newMoveCount = moveCount + 1;
     setMoveCount(newMoveCount);
 
-    const newBoard = gameState.board.map((row) => [...row]);
+    const newBoard = gameState.board.map((r) => [...r]);
     newBoard[row][col] = gameState.currentPlayer;
 
     const pointsGained = checkForPoints(
@@ -430,7 +546,6 @@ function GameContent() {
       col,
       gameState.currentPlayer
     );
-
     const newScore = { ...gameState.score };
     newScore[gameState.currentPlayer] += pointsGained;
 
@@ -500,7 +615,6 @@ function GameContent() {
     }
 
     const nextPlayer = gameState.currentPlayer === "X" ? "O" : "X";
-
     setGameState((prev) => ({
       ...prev,
       board: newBoard,
@@ -522,29 +636,20 @@ function GameContent() {
     const cell = gameState.board[row][col];
     let classes =
       "aspect-square rounded-lg border-2 flex items-center justify-center text-lg sm:text-xl font-bold transition-all duration-200 ";
-
     if (cell === "") {
       classes +=
         "bg-slate-700 border-slate-600 hover:bg-slate-600 cursor-pointer active:scale-95";
     } else {
       classes += "cursor-not-allowed border-slate-500";
-      if (cell === "X") {
-        classes += " bg-purple-500 text-white";
-      } else {
-        classes += " bg-pink-500 text-white";
-      }
+      if (cell === "X") classes += " bg-purple-500 text-white";
+      else classes += " bg-pink-500 text-white";
     }
-
     const lastX = gameState.lastMove.X;
     const lastO = gameState.lastMove.O;
-
-    if (lastX && lastX.row === row && lastX.col === col) {
+    if (lastX && lastX.row === row && lastX.col === col)
       classes += " ring-2 ring-purple-300";
-    }
-    if (lastO && lastO.row === row && lastO.col === col) {
+    if (lastO && lastO.row === row && lastO.col === col)
       classes += " ring-2 ring-pink-300";
-    }
-
     return classes;
   };
 
@@ -653,7 +758,6 @@ function GameContent() {
                       </div>
                     </div>
                   )}
-
                   <div className="grid grid-cols-5 gap-2 max-w-md mx-auto">
                     {gameState.board.map((row, rowIndex) =>
                       row.map((cell, colIndex) => (
