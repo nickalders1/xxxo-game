@@ -1,12 +1,12 @@
 {
   "name": "xxxo-game",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "next dev -p 3000 -H 0.0.0.0 --turbopack",
     "dev:full": "concurrently \"npm run dev -- --hostname 127.0.0.1 --port 3000\" \"npm run socket\"",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 3000 -H 127.0.0.1",
     "lint": "next lint",
     "socket": "node socket-server.js"
   },
