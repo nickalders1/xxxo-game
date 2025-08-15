@@ -25,11 +25,10 @@ export default function MultiplayerGame({
   onLogout,
 }: MultiplayerGameProps) {
   const { currentRoom, error, isConnected, makeMove } = useMultiplayer();
+  const gameState: GameState =
+    (currentRoom?.gameState as GameState) ?? initialGameState;
   const [statusMessage, setStatusMessage] = useState("");
   const [winner, setWinner] = useState<string | null>(null);
-
-  // Use current room's game state if available, otherwise use initial
-  const gameState = currentRoom?.gameState || initialGameState;
 
   // Determine which player this user is
   const userSymbol = gameState?.players?.X?.id === user?.id ? "X" : "O";
