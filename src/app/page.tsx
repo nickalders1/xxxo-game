@@ -105,28 +105,29 @@ export default function HomePage() {
 
         {/* Info Cards */}
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
-          {/* Rules */}
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105 md:col-span-2 lg:col-span-1">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-orange-500 rounded-full w-fit">
-                <BookOpen className="h-6 w-6 text-white" />
-              </div>
-              <CardTitle className="text-white">Spelregels</CardTitle>
-              <CardDescription className="text-gray-300">
-                Leer hoe je XXXo speelt
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/rules" className="w-full">
-                <Button
-                  variant="outline"
-                  className="w-full border-orange-500 text-orange-400 hover:bg-orange-500 hover:text-white bg-transparent"
-                >
-                  Regels Bekijken
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+          <div className="md:col-span-2 flex justify-center">
+            <Card className="w-full max-w-xl bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105">
+              <CardHeader className="text-center">
+                <div className="mx-auto mb-4 p-3 bg-orange-500 rounded-full w-fit">
+                  <BookOpen className="h-6 w-6 text-white" />
+                </div>
+                <CardTitle className="text-white">Spelregels</CardTitle>
+                <CardDescription className="text-gray-300">
+                  Leer hoe je XXXo speelt
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Link href="/rules" className="w-full">
+                  <Button
+                    variant="outline"
+                    className="w-full border-orange-500 text-orange-400 hover:bg-orange-500 hover:text-white bg-transparent"
+                  >
+                    Regels Bekijken
+                  </Button>
+                </Link>
+              </CardContent>
+            </Card>
+          </div>
         </div>
 
         {/* Game Preview */}
