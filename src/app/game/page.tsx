@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -29,10 +29,17 @@ interface GameState {
 }
 
 type Move = { row: number; col: number };
+type Mode = "local" | "ai";
+type Difficulty = "easy" | "medium" | "hard";
 
 function GameContent() {
   const searchParams = useSearchParams();
-  const mode = searchParams.get("mode") || "local";
+
+  // ✅ Typesafe en SSR-proof uitlezen
+  const mode: Mode = useMemo(() => {
+    const m = searchParams?.get("mode");
+    return m === "ai" ? "ai" : "local";
+  }, [searchParams]);
 
   const [gameState, setGameState] = useState<GameState>({
     board: Array(BOARD_SIZE)
@@ -49,9 +56,7 @@ function GameContent() {
     "Speler X is aan de beurt"
   );
   const [winner, setWinner] = useState<string | null>(null);
-  const [aiDifficulty, setAiDifficulty] = useState<"easy" | "medium" | "hard">(
-    "medium"
-  );
+  const [aiDifficulty, setAiDifficulty] = useState<Difficulty>("medium");
   const [isAiThinking, setIsAiThinking] = useState(false);
   const [gameStats, setGameStats] = useState({ X: 0, O: 0, ties: 0 });
   const [moveCount, setMoveCount] = useState(0);
@@ -111,6 +116,7 @@ function GameContent() {
       { r: 1, c: -1 },
     ];
     let totalPoints = 0;
+
     for (const { r: dirR, c: dirC } of directions) {
       let forward = 0;
       for (let i = 1; i < 5; i++) {
@@ -132,6 +138,7 @@ function GameContent() {
       const beforeMax = Math.max(forward, backward);
       if (count >= 5) {
         if (beforeMax >= 5) {
+          // do nothing
         } else if (beforeMax === 4) {
           totalPoints += 1;
         } else {
@@ -139,6 +146,7 @@ function GameContent() {
         }
       } else if (count === 4) {
         if (beforeMax >= 4) {
+          // do nothing
         } else {
           totalPoints += 1;
         }
@@ -150,7 +158,7 @@ function GameContent() {
   const hasValidMove = (
     board: string[][],
     player: "X" | "O",
-    lastMove: any
+    lastMove: GameState["lastMove"]
   ) => {
     const last = lastMove[player];
     for (let row = 0; row < BOARD_SIZE; row++) {
@@ -187,6 +195,7 @@ function GameContent() {
     ];
     const inBounds = (r: number, c: number) =>
       r >= 0 && r < BOARD_SIZE && c >= 0 && c < BOARD_SIZE;
+
     for (const { r: dr, c: dc } of dirs) {
       for (let sr = 0; sr < BOARD_SIZE; sr++) {
         for (let sc = 0; sc < BOARD_SIZE; sc++) {
@@ -204,6 +213,7 @@ function GameContent() {
             }
             if (hasEmpty && (!hasO || !hasX)) return true;
           }
+
           const er5r = sr + dr * 4;
           const er5c = sc + dc * 4;
           if (inBounds(er5r, er5c)) {
@@ -235,8 +245,7 @@ function GameContent() {
     ];
     for (let row = 0; row < BOARD_SIZE; row++) {
       for (let col = 0; col < BOARD_SIZE; col++) {
-        for (const direction of directions) {
-          const { r, c } = direction;
+        for (const { r, c } of directions) {
           let playerCount = 0;
           let opponentCount = 0;
           let emptyCount = 0;
@@ -267,7 +276,7 @@ function GameContent() {
   const getValidMoves = (
     board: string[][],
     player: "X" | "O",
-    lastMove: any
+    lastMove: GameState["lastMove"]
   ) => {
     const validMoves: Move[] = [];
     const last = lastMove[player];
@@ -306,7 +315,7 @@ function GameContent() {
   const terminalAfter = (
     board: string[][],
     score: { X: number; O: number },
-    lastMove: any
+    lastMove: GameState["lastMove"]
   ) => {
     const xCanMove = hasValidMove(board, "X", lastMove);
     const oCanMove = hasValidMove(board, "O", lastMove);
@@ -344,7 +353,10 @@ function GameContent() {
         nb[m.row][m.col] = "O";
         const pts = checkForPoints(nb, m.row, m.col, "O");
         const sc = { X: score.X, O: score.O + pts };
-        const lm = { ...lastMove, O: { row: m.row, col: m.col } };
+        const lm: GameState["lastMove"] = {
+          ...lastMove,
+          O: { row: m.row, col: m.col },
+        };
         const res = minimax(nb, lm, sc, "X", depth - 1, alpha, beta);
         if (res.value > bestVal) {
           bestVal = res.value;
@@ -362,7 +374,10 @@ function GameContent() {
         nb[m.row][m.col] = "X";
         const pts = checkForPoints(nb, m.row, m.col, "X");
         const sc = { X: score.X + pts, O: score.O };
-        const lm = { ...lastMove, X: { row: m.row, col: m.col } };
+        const lm: GameState["lastMove"] = {
+          ...lastMove,
+          X: { row: m.row, col: m.col },
+        };
         const res = minimax(nb, lm, sc, "O", depth - 1, alpha, beta);
         if (res.value < bestVal) {
           bestVal = res.value;
@@ -377,6 +392,7 @@ function GameContent() {
   const centerBias = (m: Move) => {
     const cx = (BOARD_SIZE - 1) / 2;
     return -Math.abs(m.row - cx) - Math.abs(m.col - cx);
+    // dichter bij het midden krijgt lichte voorkeur
   };
 
   const pickFromTop = (scored: { move: Move; score: number }[]) => {
@@ -394,6 +410,7 @@ function GameContent() {
       mode !== "ai"
     )
       return;
+
     setIsAiThinking(true);
     setStatusMessage("AI denkt na...");
 
@@ -433,7 +450,7 @@ function GameContent() {
             const oppMoves = getValidMoves(tb, "X", {
               ...gameState.lastMove,
               O: { row: m.row, col: m.col },
-            });
+            } as GameState["lastMove"]);
             let oppBest = 0;
             for (const om of oppMoves) {
               const t2 = cloneBoard(tb);
@@ -511,25 +528,26 @@ function GameContent() {
 
   const handleMove = (row: number, col: number) => {
     if (!gameState.gameActive) return;
+
     if (gameState.board[row][col] !== "") {
       setStatusMessage("Dit vakje is al bezet!");
       setTimeout(() => {
-        const currentMsg =
+        const msg =
           mode === "ai"
             ? "Jouw beurt (X)"
             : `Speler ${gameState.currentPlayer} is aan de beurt`;
-        setStatusMessage(currentMsg);
+        setStatusMessage(msg);
       }, 1200);
       return;
     }
     if (isNextToLastMove(row, col, gameState.currentPlayer)) {
       setStatusMessage("Je mag niet naast je laatste zet plaatsen!");
       setTimeout(() => {
-        const currentMsg =
+        const msg =
           mode === "ai"
             ? "Jouw beurt (X)"
             : `Speler ${gameState.currentPlayer} is aan de beurt`;
-        setStatusMessage(currentMsg);
+        setStatusMessage(msg);
       }, 1200);
       return;
     }
@@ -549,7 +567,7 @@ function GameContent() {
     const newScore = { ...gameState.score };
     newScore[gameState.currentPlayer] += pointsGained;
 
-    const newLastMove = { ...gameState.lastMove };
+    const newLastMove: GameState["lastMove"] = { ...gameState.lastMove };
     newLastMove[gameState.currentPlayer] = { row, col };
 
     if (gameState.bonusTurn && gameState.currentPlayer === "O") {
@@ -636,14 +654,16 @@ function GameContent() {
     const cell = gameState.board[row][col];
     let classes =
       "aspect-square rounded-lg border-2 flex items-center justify-center text-lg sm:text-xl font-bold transition-all duration-200 ";
+
     if (cell === "") {
       classes +=
         "bg-slate-700 border-slate-600 hover:bg-slate-600 cursor-pointer active:scale-95";
     } else {
       classes += "cursor-not-allowed border-slate-500";
-      if (cell === "X") classes += " bg-purple-500 text-white";
-      else classes += " bg-pink-500 text-white";
+      classes +=
+        cell === "X" ? " bg-purple-500 text-white" : " bg-pink-500 text-white";
     }
+
     const lastX = gameState.lastMove.X;
     const lastO = gameState.lastMove.O;
     if (lastX && lastX.row === row && lastX.col === col)
@@ -679,7 +699,9 @@ function GameContent() {
                   <span>•</span>
                   <Select
                     value={aiDifficulty}
-                    onValueChange={(value: any) => setAiDifficulty(value)}
+                    onValueChange={(value) =>
+                      setAiDifficulty((value as Difficulty) ?? "medium")
+                    }
                   >
                     <SelectTrigger className="w-24 h-8 bg-slate-800 border-slate-600 text-white text-xs">
                       <SelectValue />
@@ -725,7 +747,7 @@ function GameContent() {
               <CardHeader className="pb-4">
                 <CardTitle className="text-center text-white text-lg sm:text-xl">
                   {winner
-                    ? winner
+                    ? (winner as string)
                     : isAiThinking
                     ? "AI denkt na..."
                     : statusMessage}

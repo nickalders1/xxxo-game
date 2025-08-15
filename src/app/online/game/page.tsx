@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -39,8 +39,13 @@ interface GameData {
 
 function OnlineGameContent() {
   const searchParams = useSearchParams();
-  const gameId = searchParams.get("id");
-  const playerName = searchParams.get("name");
+
+  // Veilig uitlezen (kan initieel null zijn vóór hydration)
+  const gameId = useMemo(() => searchParams?.get("id") ?? null, [searchParams]);
+  const playerNameParam = useMemo(
+    () => searchParams?.get("name") ?? null,
+    [searchParams]
+  );
 
   const [socket, setSocket] = useState<Socket | null>(null);
   const [game, setGame] = useState<GameData | null>(null);
@@ -52,18 +57,27 @@ function OnlineGameContent() {
   const [actualPlayerName, setActualPlayerName] = useState<string>("");
 
   useEffect(() => {
-    console.log("Game page loaded with:", { gameId, playerName }); // Debug log
+    // Wacht tot params beschikbaar zijn
+    if (gameId === null || playerNameParam === null) return;
 
-    // Get player name from localStorage (client-side only)
-    let resolvedPlayerName = playerName;
-    if (typeof window !== "undefined") {
-      if (!resolvedPlayerName || resolvedPlayerName.trim() === "") {
-        resolvedPlayerName = localStorage.getItem("playerName");
-        console.log("Got name from localStorage:", resolvedPlayerName);
+    console.log("Game page loaded with:", {
+      gameId,
+      playerName: playerNameParam,
+    });
+
+    // Naam bepalen (queryparam → localStorage → fallback)
+    let resolvedPlayerName: string | null = playerNameParam;
+    if (
+      typeof window !== "undefined" &&
+      (!resolvedPlayerName || resolvedPlayerName.trim() === "")
+    ) {
+      const stored = window.localStorage.getItem("playerName"); // string | null
+      if (stored && stored.trim() !== "") {
+        resolvedPlayerName = stored;
       }
     }
 
-    setActualPlayerName(resolvedPlayerName || "Unknown");
+    setActualPlayerName(resolvedPlayerName ?? "Unknown");
 
     if (!gameId || !resolvedPlayerName) {
       console.log("Missing parameters, redirecting to lobby", {
@@ -95,7 +109,6 @@ function OnlineGameContent() {
     });
 
     socketConnection.on("game-joined", ({ game, yourSymbol }) => {
-      console.log("Game joined successfully:", { game, yourSymbol });
       setGame(game);
       setMySymbol(yourSymbol);
       updateStatusMessage(game);
@@ -108,9 +121,8 @@ function OnlineGameContent() {
 
     socketConnection.on("game-ended", ({ game, winner }) => {
       setGame(game);
-      if (winner === "tie") {
-        setWinner("Gelijkspel! 🤝");
-      } else {
+      if (winner === "tie") setWinner("Gelijkspel! 🤝");
+      else {
         const winnerPlayer = game.players[winner];
         setWinner(`${winnerPlayer?.name} wint! 🎉`);
       }
@@ -125,22 +137,19 @@ function OnlineGameContent() {
       setStatusMessage(`Fout: ${message}`);
     });
 
-    // Game timer
-    const timer = setInterval(() => {
-      setGameTime((prev) => prev + 1);
-    }, 1000);
+    const timer = setInterval(() => setGameTime((p) => p + 1), 1000);
 
     return () => {
       clearInterval(timer);
       socketManager.disconnect();
     };
-  }, [gameId, playerName]);
+  }, [gameId, playerNameParam]);
 
   const updateStatusMessage = (gameData: GameData) => {
     if (gameData.status === "waiting") {
       setStatusMessage("Wachten op tegenstander...");
     } else if (gameData.status === "finished") {
-      return; // Winner message is set separately
+      return; // Winner message wordt apart gezet
     } else if (gameData.gameState.bonusTurn) {
       const bonusPlayer = gameData.players.O;
       setStatusMessage(`${bonusPlayer?.name} krijgt een bonus beurt!`);
@@ -185,14 +194,10 @@ function OnlineGameContent() {
         "bg-slate-700 border-slate-600 hover:bg-slate-600 cursor-pointer active:scale-95";
     } else {
       classes += "cursor-not-allowed border-slate-500";
-      if (cell === "X") {
-        classes += " bg-purple-500 text-white";
-      } else {
-        classes += " bg-pink-500 text-white";
-      }
+      classes +=
+        cell === "X" ? " bg-purple-500 text-white" : " bg-pink-500 text-white";
     }
 
-    // Highlight last moves
     const lastX = game?.gameState.lastMove.X;
     const lastO = game?.gameState.lastMove.O;
 
@@ -385,7 +390,7 @@ function OnlineGameContent() {
               </CardContent>
             </Card>
 
-            {/* Current Score */}
+            {/* Score */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-white text-lg">Score</CardTitle>
@@ -412,7 +417,7 @@ function OnlineGameContent() {
               </CardContent>
             </Card>
 
-            {/* Game Status */}
+            {/* Status */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-white text-lg">Status</CardTitle>
@@ -439,7 +444,7 @@ function OnlineGameContent() {
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
+            {/* Acties */}
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
                 <CardTitle className="text-white text-lg">Acties</CardTitle>
