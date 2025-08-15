@@ -106,7 +106,7 @@ export default function HomePage() {
         {/* Info Cards */}
         <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
           {/* Rules */}
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300">
+          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105 md:col-span-2 lg:col-span-1">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-3 bg-orange-500 rounded-full w-fit">
                 <BookOpen className="h-6 w-6 text-white" />
