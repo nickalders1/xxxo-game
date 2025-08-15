@@ -127,29 +127,6 @@ export default function HomePage() {
               </Link>
             </CardContent>
           </Card>
-
-          {/* Stats */}
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300">
-            <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-3 bg-yellow-500 rounded-full w-fit">
-                <Trophy className="h-6 w-6 text-white" />
-              </div>
-              <CardTitle className="text-white">Statistieken</CardTitle>
-              <CardDescription className="text-gray-300">
-                Bekijk je prestaties
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/stats" className="w-full">
-                <Button
-                  variant="outline"
-                  className="w-full border-yellow-500 text-yellow-400 hover:bg-yellow-500 hover:text-white bg-transparent"
-                >
-                  Stats Bekijken
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Game Preview */}
