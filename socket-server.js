@@ -202,6 +202,7 @@ function updateQueuePositions(io) {
 }
 
 // Create HTTP server and Socket.IO - Listen on all interfaces
+const allowedOrigin = process.env.ALLOWED_ORIGIN || "https://xxxo.bothosts.com";
 const server = createServer();
 const io = new Server(server, {
   cors: {
@@ -426,8 +427,8 @@ io.on("connection", (socket) => {
   });
 });
 
-// Listen on all interfaces (0.0.0.0) instead of just localhost
-server.listen(port, "0.0.0.0", (err) => {
+// Listen only local; Nginx will proxy this
+server.listen(port, "127.0.0.1", (err) => {
   if (err) throw err;
   console.log(`> Socket.IO server ready on http://0.0.0.0:${port}`);
   console.log(`> Accessible from external domains`);
