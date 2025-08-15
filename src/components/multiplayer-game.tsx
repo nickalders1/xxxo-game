@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Home, RotateCcw, Users, Wifi, WifiOff } from "lucide-react";
 import { useMultiplayer } from "../../contexts/multiplayer-context";
-import type { GameState } from "../../types/database";
+import type { GameState } from "../types/database";
 
 interface MultiplayerGameProps {
   user: any;
