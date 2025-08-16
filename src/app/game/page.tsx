@@ -25,7 +25,7 @@ interface GameState {
     X: { row: number; col: number } | null;
     O: { row: number; col: number } | null;
   };
-  bonusTurn: boolean;
+  bonusTurn: boolean; // only means: O gets exactly one final move
 }
 
 type Move = { row: number; col: number };
@@ -394,7 +394,7 @@ function GameContent() {
     return band[Math.floor(Math.random() * band.length)].move;
   };
 
-  const resolveTurn = (
+  const resolveTurnStart = (
     board: string[][],
     score: { X: number; O: number },
     lastMove: GameState["lastMove"],
@@ -405,20 +405,17 @@ function GameContent() {
     const stillPoints = anyPotentialPoints(board);
     const empty = countEmptyCells(board);
     if (empty <= 1 || (!xCan && !oCan) || !stillPoints) {
-      return { action: "end" as const, next: current, score };
+      return { action: "end" as const };
     }
     if (current === "X" && !xCan && oCan) {
-      return { action: "bonusO" as const, next: "O" as const, score };
+      return { action: "bonusO" as const };
     }
-    if (current === "O" && !oCan && xCan) {
-      return { action: "bonusX" as const, next: "X" as const, score };
-    }
-    return { action: "ok" as const, next: current, score };
+    return { action: "ok" as const };
   };
 
   useEffect(() => {
     if (!gameState.gameActive) return;
-    const r = resolveTurn(
+    const r = resolveTurnStart(
       gameState.board,
       gameState.score,
       gameState.lastMove,
@@ -426,13 +423,10 @@ function GameContent() {
     );
     if (r.action === "end") {
       setGameState((prev) => ({ ...prev, gameActive: false }));
-      declareWinner(r.score);
+      declareWinner(gameState.score);
     } else if (r.action === "bonusO") {
       setGameState((prev) => ({ ...prev, bonusTurn: true, currentPlayer: "O" }));
       setStatusMessage(mode === "ai" ? "AI krijgt een bonus beurt!" : "Speler O krijgt een bonus beurt!");
-    } else if (r.action === "bonusX") {
-      setGameState((prev) => ({ ...prev, bonusTurn: true, currentPlayer: "X" }));
-      setStatusMessage(mode === "ai" ? "Jij krijgt een bonus beurt!" : "Speler X krijgt een bonus beurt!");
     }
   }, [gameState.currentPlayer, gameState.board, gameState.lastMove, gameState.score, gameState.gameActive, mode]);
 
@@ -602,14 +596,17 @@ function GameContent() {
       return;
     }
 
-    const r = resolveTurn(
-      newBoard,
-      newScore,
-      newLastMove,
-      gameState.currentPlayer === "X" ? "O" : "X"
-    );
+    const nextPlayer: "X" | "O" = gameState.currentPlayer === "X" ? "O" : "X";
 
-    if (r.action === "end") {
+    const endCheck = (() => {
+      const xCan = hasValidMove(newBoard, "X", newLastMove);
+      const oCan = hasValidMove(newBoard, "O", newLastMove);
+      const stillPoints = anyPotentialPoints(newBoard);
+      const empty = countEmptyCells(newBoard);
+      return empty <= 1 || (!xCan && !oCan) || !stillPoints;
+    })();
+
+    if (endCheck) {
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -621,37 +618,6 @@ function GameContent() {
       return;
     }
 
-    if (r.action === "bonusO") {
-      setGameState((prev) => ({
-        ...prev,
-        board: newBoard,
-        score: newScore,
-        lastMove: newLastMove,
-        bonusTurn: true,
-        currentPlayer: "O",
-      }));
-      setStatusMessage(
-        mode === "ai" ? "AI krijgt een bonus beurt!" : "Speler O krijgt een bonus beurt!"
-      );
-      return;
-    }
-
-    if (r.action === "bonusX") {
-      setGameState((prev) => ({
-        ...prev,
-        board: newBoard,
-        score: newScore,
-        lastMove: newLastMove,
-        bonusTurn: true,
-        currentPlayer: "X",
-      }));
-      setStatusMessage(
-        mode === "ai" ? "Jij krijgt een bonus beurt!" : "Speler X krijgt een bonus beurt!"
-      );
-      return;
-    }
-
-    const nextPlayer = gameState.currentPlayer === "X" ? "O" : "X";
     setGameState((prev) => ({
       ...prev,
       board: newBoard,
@@ -719,22 +685,13 @@ function GameContent() {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="bg-slate-800 border-slate-600">
-                      <SelectItem
-                        value="easy"
-                        className="text-white hover:bg-slate-700"
-                      >
+                      <SelectItem value="easy" className="text-white hover:bg-slate-700">
                         Easy
                       </SelectItem>
-                      <SelectItem
-                        value="medium"
-                        className="text-white hover:bg-slate-700"
-                      >
+                      <SelectItem value="medium" className="text-white hover:bg-slate-700">
                         Medium
                       </SelectItem>
-                      <SelectItem
-                        value="hard"
-                        className="text-white hover:bg-slate-700"
-                      >
+                      <SelectItem value="hard" className="text-white hover:bg-slate-700">
                         Hard
                       </SelectItem>
                     </SelectContent>
@@ -744,10 +701,7 @@ function GameContent() {
             </div>
           </div>
 
-        <Button
-            onClick={initializeGame}
-            className="bg-blue-500 hover:bg-blue-600"
-          >
+          <Button onClick={initializeGame} className="bg-blue-500 hover:bg-blue-600">
             <RotateCcw className="mr-2 h-4 w-4" />
             Nieuw Spel
           </Button>
@@ -816,9 +770,7 @@ function GameContent() {
           <div className="space-y-4">
             <Card className="bg-slate-800/50 border-slate-700">
               <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg">
-                  Huidige Score
-                </CardTitle>
+                <CardTitle className="text-white text-lg">Huidige Score</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <div className="flex justify-between items-center">
