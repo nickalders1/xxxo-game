@@ -35,7 +35,6 @@ type Difficulty = "easy" | "medium" | "hard";
 function GameContent() {
   const searchParams = useSearchParams();
 
-  // ✅ Typesafe en SSR-proof uitlezen
   const mode: Mode = useMemo(() => {
     const m = searchParams?.get("mode");
     return m === "ai" ? "ai" : "local";
@@ -52,9 +51,7 @@ function GameContent() {
     bonusTurn: false,
   });
 
-  const [statusMessage, setStatusMessage] = useState(
-    "Speler X is aan de beurt"
-  );
+  const [statusMessage, setStatusMessage] = useState("Speler X is aan de beurt");
   const [winner, setWinner] = useState<string | null>(null);
   const [aiDifficulty, setAiDifficulty] = useState<Difficulty>("medium");
   const [isAiThinking, setIsAiThinking] = useState(false);
@@ -89,9 +86,7 @@ function GameContent() {
       lastMove: { X: null, O: null },
       bonusTurn: false,
     });
-    setStatusMessage(
-      mode === "ai" ? "Jouw beurt (X)" : "Speler X is aan de beurt"
-    );
+    setStatusMessage(mode === "ai" ? "Jouw beurt (X)" : "Speler X is aan de beurt");
     setWinner(null);
     setIsAiThinking(false);
     setMoveCount(0);
@@ -138,7 +133,6 @@ function GameContent() {
       const beforeMax = Math.max(forward, backward);
       if (count >= 5) {
         if (beforeMax >= 5) {
-          // do nothing
         } else if (beforeMax === 4) {
           totalPoints += 1;
         } else {
@@ -146,7 +140,6 @@ function GameContent() {
         }
       } else if (count === 4) {
         if (beforeMax >= 4) {
-          // do nothing
         } else {
           totalPoints += 1;
         }
@@ -296,7 +289,6 @@ function GameContent() {
   };
 
   const cloneBoard = (board: string[][]) => board.map((r) => [...r]);
-  const opponentOf = (p: "X" | "O") => (p === "X" ? "O" : "X");
 
   const evalBoardForO = (
     board: string[][],
@@ -392,7 +384,6 @@ function GameContent() {
   const centerBias = (m: Move) => {
     const cx = (BOARD_SIZE - 1) / 2;
     return -Math.abs(m.row - cx) - Math.abs(m.col - cx);
-    // dichter bij het midden krijgt lichte voorkeur
   };
 
   const pickFromTop = (scored: { move: Move; score: number }[]) => {
@@ -403,31 +394,60 @@ function GameContent() {
     return band[Math.floor(Math.random() * band.length)].move;
   };
 
-  const makeAiMove = () => {
-    if (
-      !gameState.gameActive ||
-      gameState.currentPlayer !== "O" ||
-      mode !== "ai"
-    )
-      return;
+  const resolveTurn = (
+    board: string[][],
+    score: { X: number; O: number },
+    lastMove: GameState["lastMove"],
+    current: "X" | "O"
+  ) => {
+    const xCan = hasValidMove(board, "X", lastMove);
+    const oCan = hasValidMove(board, "O", lastMove);
+    const stillPoints = anyPotentialPoints(board);
+    const empty = countEmptyCells(board);
+    if (empty <= 1 || (!xCan && !oCan) || !stillPoints) {
+      return { action: "end" as const, next: current, score };
+    }
+    if (current === "X" && !xCan && oCan) {
+      return { action: "bonusO" as const, next: "O" as const, score };
+    }
+    if (current === "O" && !oCan && xCan) {
+      return { action: "bonusX" as const, next: "X" as const, score };
+    }
+    return { action: "ok" as const, next: current, score };
+  };
 
+  useEffect(() => {
+    if (!gameState.gameActive) return;
+    const r = resolveTurn(
+      gameState.board,
+      gameState.score,
+      gameState.lastMove,
+      gameState.currentPlayer
+    );
+    if (r.action === "end") {
+      setGameState((prev) => ({ ...prev, gameActive: false }));
+      declareWinner(r.score);
+    } else if (r.action === "bonusO") {
+      setGameState((prev) => ({ ...prev, bonusTurn: true, currentPlayer: "O" }));
+      setStatusMessage(mode === "ai" ? "AI krijgt een bonus beurt!" : "Speler O krijgt een bonus beurt!");
+    } else if (r.action === "bonusX") {
+      setGameState((prev) => ({ ...prev, bonusTurn: true, currentPlayer: "X" }));
+      setStatusMessage(mode === "ai" ? "Jij krijgt een bonus beurt!" : "Speler X krijgt een bonus beurt!");
+    }
+  }, [gameState.currentPlayer, gameState.board, gameState.lastMove, gameState.score, gameState.gameActive, mode]);
+
+  const makeAiMove = () => {
+    if (!gameState.gameActive || gameState.currentPlayer !== "O" || mode !== "ai") return;
     setIsAiThinking(true);
     setStatusMessage("AI denkt na...");
-
     setTimeout(
       () => {
-        const validMoves = getValidMoves(
-          gameState.board,
-          "O",
-          gameState.lastMove
-        );
+        const validMoves = getValidMoves(gameState.board, "O", gameState.lastMove);
         if (validMoves.length === 0) {
           setIsAiThinking(false);
           return;
         }
-
         let chosen: Move | null = null;
-
         if (aiDifficulty === "easy") {
           const greedy = validMoves
             .map((m) => {
@@ -496,7 +516,6 @@ function GameContent() {
               validMoves[Math.floor(Math.random() * validMoves.length)];
           }
         }
-
         setIsAiThinking(false);
         if (chosen) handleMove(chosen.row, chosen.col);
       },
@@ -583,15 +602,14 @@ function GameContent() {
       return;
     }
 
-    const xCanMove = hasValidMove(newBoard, "X", newLastMove);
-    const oCanMove = hasValidMove(newBoard, "O", newLastMove);
-    const stillPointsPossible = anyPotentialPoints(newBoard);
+    const r = resolveTurn(
+      newBoard,
+      newScore,
+      newLastMove,
+      gameState.currentPlayer === "X" ? "O" : "X"
+    );
 
-    if (
-      countEmptyCells(newBoard) <= 1 ||
-      (!xCanMove && !oCanMove) ||
-      !stillPointsPossible
-    ) {
+    if (r.action === "end") {
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -603,7 +621,7 @@ function GameContent() {
       return;
     }
 
-    if (gameState.currentPlayer === "X" && !xCanMove && oCanMove) {
+    if (r.action === "bonusO") {
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
@@ -613,22 +631,23 @@ function GameContent() {
         currentPlayer: "O",
       }));
       setStatusMessage(
-        mode === "ai"
-          ? "AI krijgt een bonus beurt!"
-          : "Speler O krijgt een bonus beurt!"
+        mode === "ai" ? "AI krijgt een bonus beurt!" : "Speler O krijgt een bonus beurt!"
       );
       return;
     }
 
-    if (gameState.currentPlayer === "X" && !oCanMove) {
+    if (r.action === "bonusX") {
       setGameState((prev) => ({
         ...prev,
         board: newBoard,
         score: newScore,
         lastMove: newLastMove,
-        gameActive: false,
+        bonusTurn: true,
+        currentPlayer: "X",
       }));
-      declareWinner(newScore);
+      setStatusMessage(
+        mode === "ai" ? "Jij krijgt een bonus beurt!" : "Speler X krijgt een bonus beurt!"
+      );
       return;
     }
 
@@ -642,9 +661,7 @@ function GameContent() {
     }));
 
     if (mode === "ai") {
-      setStatusMessage(
-        nextPlayer === "X" ? "Jouw beurt (X)" : "AI denkt na..."
-      );
+      setStatusMessage(nextPlayer === "X" ? "Jouw beurt (X)" : "AI denkt na...");
     } else {
       setStatusMessage(`Speler ${nextPlayer} is aan de beurt`);
     }
@@ -654,22 +671,17 @@ function GameContent() {
     const cell = gameState.board[row][col];
     let classes =
       "aspect-square rounded-lg border-2 flex items-center justify-center text-lg sm:text-xl font-bold transition-all duration-200 ";
-
     if (cell === "") {
       classes +=
         "bg-slate-700 border-slate-600 hover:bg-slate-600 cursor-pointer active:scale-95";
     } else {
       classes += "cursor-not-allowed border-slate-500";
-      classes +=
-        cell === "X" ? " bg-purple-500 text-white" : " bg-pink-500 text-white";
+      classes += cell === "X" ? " bg-purple-500 text-white" : " bg-pink-500 text-white";
     }
-
     const lastX = gameState.lastMove.X;
     const lastO = gameState.lastMove.O;
-    if (lastX && lastX.row === row && lastX.col === col)
-      classes += " ring-2 ring-purple-300";
-    if (lastO && lastO.row === row && lastO.col === col)
-      classes += " ring-2 ring-pink-300";
+    if (lastX && lastX.row === row && lastX.col === col) classes += " ring-2 ring-purple-300";
+    if (lastO && lastO.row === row && lastO.col === col) classes += " ring-2 ring-pink-300";
     return classes;
   };
 
@@ -732,7 +744,7 @@ function GameContent() {
             </div>
           </div>
 
-          <Button
+        <Button
             onClick={initializeGame}
             className="bg-blue-500 hover:bg-blue-600"
           >
