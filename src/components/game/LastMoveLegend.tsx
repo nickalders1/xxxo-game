@@ -5,7 +5,7 @@ export function LastMoveLegend() {
         aria-hidden="true"
         className="inline-block h-4 w-4 rounded-md ring-2 ring-game-cell-last ring-offset-1 ring-offset-background bg-game-cell"
       />
-      <span>= laatste zet</span>
+      <span>= last move</span>
     </div>
   );
 }

@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "XXXo The Game",
-  description: "Een strategische variant van tic-tac-toe op een 5x5 bord",
+  description: "A strategic tic-tac-toe variant on a 5x5 board",
   applicationName: "XXXo",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -39,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="nl" className="dark" suppressHydrationWarning>
+    <html lang="en" className="dark" suppressHydrationWarning>
       <body className={`${inter.className} bg-background text-foreground antialiased`}>
         <NativeShellInit />
         {children}

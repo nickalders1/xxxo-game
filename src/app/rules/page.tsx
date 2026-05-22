@@ -32,13 +32,13 @@ export default function RulesPage() {
   return (
     <AppShell>
       <TopBar
-        title="Spelregels"
+        title="Rules"
         backHref="/"
         right={
           <Link href="/game?mode=local">
             <Button size="sm" className="tap-target">
               <Play className="h-4 w-4" />
-              <span className="hidden sm:inline">Start spel</span>
+              <span className="hidden sm:inline">Start game</span>
             </Button>
           </Link>
         }
@@ -50,23 +50,23 @@ export default function RulesPage() {
           <CardHeader>
             <div className="flex items-center gap-3">
               <Target className="h-5 w-5 text-primary" />
-              <CardTitle>Basisregels</CardTitle>
+              <CardTitle>Basics</CardTitle>
             </div>
-            <CardDescription>De fundamentele regels van XXXo</CardDescription>
+            <CardDescription>The fundamentals of XXXo</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5 text-foreground/90">
-            <Section title="Doel">
+            <Section title="Goal">
               <p>
-                Scoor meer punten dan je tegenstander door 4 of 5 symbolen op een
-                rij te maken (horizontaal, verticaal of diagonaal) op een 5×5
-                bord.
+                Score more points than your opponent by making 4 or 5 symbols
+                in a row (horizontally, vertically or diagonally) on a 5×5
+                board.
               </p>
             </Section>
-            <Section title="Beurten">
+            <Section title="Turns">
               <ul className="list-disc list-inside space-y-1 text-foreground/80">
-                <li>Speler X begint altijd</li>
-                <li>Spelers wisselen om de beurt af</li>
-                <li>Plaats je symbool in een leeg vakje</li>
+                <li>Player X always starts</li>
+                <li>Players alternate turns</li>
+                <li>Place your symbol in an empty cell</li>
               </ul>
             </Section>
           </CardContent>
@@ -77,18 +77,18 @@ export default function RulesPage() {
           <CardHeader>
             <div className="flex items-center gap-3">
               <Zap className="h-5 w-5 text-accent" />
-              <CardTitle>Punten</CardTitle>
+              <CardTitle>Scoring</CardTitle>
             </div>
-            <CardDescription>Hoe je scoort in XXXo</CardDescription>
+            <CardDescription>How you score in XXXo</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid sm:grid-cols-2 gap-4">
-              <ScoreTile points={1} title="4 op een rij" />
-              <ScoreTile points={2} title="5 op een rij" />
+              <ScoreTile points={1} title="4 in a row" />
+              <ScoreTile points={2} title="5 in a row" />
             </div>
             <p className="text-sm text-muted-foreground mt-4">
-              Als je een bestaande 4 doortrekt naar een 5, scoor je alleen het
-              uitbreidingspunt (+1), niet de volle +2.
+              Extending an existing 4 to a 5 only awards the extension point
+              (+1), not the full +2.
             </p>
           </CardContent>
         </Card>
@@ -98,35 +98,36 @@ export default function RulesPage() {
           <CardHeader>
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-destructive" />
-              <CardTitle>Belangrijke regels</CardTitle>
+              <CardTitle>Important rules</CardTitle>
             </div>
-            <CardDescription>Wat dit spel strategisch maakt</CardDescription>
+            <CardDescription>What makes this game strategic</CardDescription>
           </CardHeader>
           <CardContent className="space-y-5">
-            <Callout tone="destructive" title="Bewegingsbeperking">
+            <Callout tone="destructive" title="Movement restriction">
               <p>
-                Je mag <strong>niet</strong> naast je eigen laatste zet
-                plaatsen. Alle 8 vakjes rondom je laatste zet zijn verboden voor
-                je volgende beurt.
+                You may <strong>not</strong> place next to your own last move.
+                All 8 cells around your last move are forbidden for your next
+                turn.
               </p>
             </Callout>
 
-            <Callout tone="primary" title="Bonus beurt">
+            <Callout tone="primary" title="Bonus turn">
               <p>
-                Heeft één speler geen geldige zet meer maar de ander wel? Dan
-                krijgt de ander één bonusbeurt. Daarna eindigt het spel.
+                If one player has no valid moves left while the other still
+                does, the other player gets one bonus turn. After that the
+                game ends.
               </p>
             </Callout>
 
-            <Section title="Spel einde">
+            <Section title="Game end">
               <ul className="list-disc list-inside space-y-1 text-foreground/80">
-                <li>Nog maar 1 leeg vakje over, óf</li>
-                <li>Geen van beide spelers kan een geldige zet maken, óf</li>
-                <li>Er zijn geen punten meer te behalen, óf</li>
-                <li>Na een bonusbeurt</li>
+                <li>Only 1 empty cell left, or</li>
+                <li>Neither player can make a valid move, or</li>
+                <li>No more points can be scored, or</li>
+                <li>After a bonus turn</li>
               </ul>
               <p className="text-foreground/90">
-                Speler met de meeste punten wint. Gelijke stand → gelijkspel.
+                Player with the most points wins. Equal score = tie.
               </p>
             </Section>
           </CardContent>
@@ -137,18 +138,18 @@ export default function RulesPage() {
           <CardHeader>
             <div className="flex items-center gap-3">
               <Lightbulb className="h-5 w-5 text-accent" />
-              <CardTitle>Strategie</CardTitle>
+              <CardTitle>Strategy</CardTitle>
             </div>
-            <CardDescription>Tips om beter te worden</CardDescription>
+            <CardDescription>Tips to get better</CardDescription>
           </CardHeader>
           <CardContent>
             <ul className="space-y-2 text-foreground/90">
               {[
-                "Plan vooruit — waar mag je over twee zetten nog komen?",
-                "Forceer je tegenstander in posities zonder goede zetten.",
-                "Ga voor 5 op een rij als het kan — dubbele punten waard.",
-                "Gebruik de bewegingsbeperking ook tactisch tegen jezelf.",
-                "Creëer meerdere dreigingen tegelijk.",
+                "Plan ahead — where can you still play two moves from now?",
+                "Force your opponent into positions with no good moves.",
+                "Go for 5 in a row when you can — double points are worth it.",
+                "Use the movement restriction tactically against yourself too.",
+                "Create multiple threats at the same time.",
               ].map((tip) => (
                 <li key={tip} className="flex items-start gap-2">
                   <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
@@ -162,10 +163,10 @@ export default function RulesPage() {
         {/* Example board */}
         <Card>
           <CardHeader>
-            <CardTitle>Voorbeeldbord</CardTitle>
+            <CardTitle>Example board</CardTitle>
             <CardDescription>
-              Diagonaal van linksboven naar rechtsonder — X heeft 5 op een rij = 2
-              punten.
+              Diagonal from top-left to bottom-right — X has 5 in a row = 2
+              points.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -195,13 +196,13 @@ export default function RulesPage() {
           <Link href="/game?mode=local" className="flex-1 sm:flex-none">
             <Button size="lg" className="w-full sm:w-auto tap-target">
               <Play className="h-4 w-4" />
-              Lokaal spelen
+              Play local
             </Button>
           </Link>
           <Link href="/online" className="flex-1 sm:flex-none">
             <Button size="lg" variant="secondary" className="w-full sm:w-auto tap-target">
               <Users className="h-4 w-4" />
-              Online spelen
+              Play online
             </Button>
           </Link>
         </div>
@@ -226,7 +227,7 @@ function ScoreTile({ points, title }: { points: 1 | 2; title: string }) {
       <div className="flex items-baseline gap-2">
         <span className="text-3xl font-bold tabular text-accent">{points}</span>
         <span className="text-sm text-muted-foreground">
-          {points === 1 ? "punt" : "punten"}
+          {points === 1 ? "point" : "points"}
         </span>
       </div>
     </div>

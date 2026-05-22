@@ -19,7 +19,7 @@ The remote URL is configured in [capacitor.config.ts](capacitor.config.ts).
 | Mode | URL the app loads |
 | --- | --- |
 | `CAP_DEV=1` (LAN testing) | `$CAP_DEV_URL` (default `http://localhost:3000`) |
-| Production (default) | `https://xxxo.bothosts.com` |
+| Production (default) | `https://xxxo-game.com` |
 
 ## One-time setup (Android)
 

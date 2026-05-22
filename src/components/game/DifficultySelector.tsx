@@ -16,9 +16,9 @@ interface DifficultySelectorProps {
 }
 
 const LABELS: Record<Difficulty, string> = {
-  easy: "Makkelijk",
-  medium: "Gemiddeld",
-  hard: "Moeilijk",
+  easy: "Easy",
+  medium: "Medium",
+  hard: "Hard",
 };
 
 export function DifficultySelector({ value, onChange, disabled }: DifficultySelectorProps) {

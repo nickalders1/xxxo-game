@@ -1,4 +1,5 @@
 import withSerwistInit from "@serwist/next";
+import withBundleAnalyzerInit from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
 const withSerwist = withSerwistInit({
@@ -11,8 +12,12 @@ const withSerwist = withSerwistInit({
   reloadOnOnline: true,
 });
 
+const withBundleAnalyzer = withBundleAnalyzerInit({
+  enabled: process.env.ANALYZE === "true",
+});
+
 const nextConfig: NextConfig = {
   devIndicators: false,
 };
 
-export default withSerwist(nextConfig);
+export default withBundleAnalyzer(withSerwist(nextConfig));

@@ -8,7 +8,7 @@ module.exports = {
       env: {
         NODE_ENV: "production",
         PORT: "3000",
-        NEXT_PUBLIC_SOCKET_URL: "https://xxxo.bothosts.com",
+        NEXT_PUBLIC_SOCKET_URL: "https://xxxo-game.com",
       },
       autorestart: true,
     },

@@ -19,7 +19,7 @@ export function PlayerBadge({ player, size = "md", className }: PlayerBadgeProps
         player === "O" && "bg-game-o-soft text-game-o",
         className,
       )}
-      aria-label={`Speler ${player}`}
+      aria-label={`Player ${player}`}
     >
       {player}
     </span>

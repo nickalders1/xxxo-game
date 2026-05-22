@@ -51,7 +51,9 @@ function LocalGameView() {
       winner={game.winner}
       moveCount={game.moveCount}
       lastErrorKind={game.lastError?.kind}
-      onMove={(r, c) => game.makeMove(r, c)}
+      // Pass the hook's stable useCallback directly so memo'd Cells don't
+      // re-render every time something unrelated changes upstream.
+      onMove={game.makeMove}
       onReset={game.reset}
     />
   );
@@ -66,7 +68,7 @@ function AIGameView() {
       winner={game.winner}
       moveCount={game.moveCount}
       lastErrorKind={game.lastError?.kind}
-      onMove={(r, c) => game.makeMove(r, c)}
+      onMove={game.makeMove}
       onReset={game.reset}
       difficulty={game.difficulty}
       onDifficultyChange={game.setDifficulty}
@@ -130,37 +132,37 @@ function GameLayout({
     setCountedFor(null);
   };
 
-  const labelX = mode === "ai" ? "Jij" : "Speler X";
-  const labelO = mode === "ai" ? "AI" : "Speler O";
+  const labelX = mode === "ai" ? "You" : "Player X";
+  const labelO = mode === "ai" ? "AI" : "Player O";
 
   const statusMessage = useMemo(() => {
     if (winner) {
-      if (winner === "tie") return "Gelijkspel!";
-      if (mode === "ai") return winner === "X" ? "Jij wint!" : "AI wint!";
-      return `Speler ${winner} wint!`;
+      if (winner === "tie") return "Tie!";
+      if (mode === "ai") return winner === "X" ? "You win!" : "AI wins!";
+      return `Player ${winner} wins!`;
     }
     if (state.bonusTurn) {
-      const who = mode === "ai" && state.currentPlayer === "O" ? "AI" : `Speler ${state.currentPlayer}`;
-      return `${who} krijgt een bonus beurt!`;
+      const who = mode === "ai" && state.currentPlayer === "O" ? "AI" : `Player ${state.currentPlayer}`;
+      return `${who} gets a bonus turn!`;
     }
-    if (isAiThinking) return "AI denkt na…";
+    if (isAiThinking) return "AI is thinking…";
     if (lastErrorKind === "adjacent-to-last-move") {
-      return "Je mag niet naast je eigen laatste zet plaatsen.";
+      return "You can't place next to your own last move.";
     }
     if (lastErrorKind === "cell-occupied") {
-      return "Dit vakje is al bezet.";
+      return "That cell is already taken.";
     }
     if (mode === "ai") {
-      return state.currentPlayer === "X" ? "Jouw beurt (X)" : "AI is aan zet";
+      return state.currentPlayer === "X" ? "Your turn (X)" : "AI's turn";
     }
-    return `Speler ${state.currentPlayer} is aan de beurt`;
+    return `Player ${state.currentPlayer}'s turn`;
   }, [winner, state.bonusTurn, state.currentPlayer, isAiThinking, lastErrorKind, mode]);
 
   const subtitle = (
     <span className="inline-flex items-center gap-2">
-      <span>{mode === "ai" ? "Tegen AI" : "Lokaal spel"}</span>
+      <span>{mode === "ai" ? "vs AI" : "Local game"}</span>
       <span className="text-border">•</span>
-      <span>Zet #{moveCount}</span>
+      <span>Move #{moveCount}</span>
     </span>
   );
 
@@ -209,13 +211,13 @@ function GameLayout({
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Trophy className="h-4 w-4 text-muted-foreground" />
-                Sessie
+                Session
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
-              <StatRow label={mode === "ai" ? "Jij wint" : "X wint"} value={stats.X} />
-              <StatRow label={mode === "ai" ? "AI wint" : "O wint"} value={stats.O} />
-              <StatRow label="Gelijkspel" value={stats.ties} />
+              <StatRow label={mode === "ai" ? "You won" : "X won"} value={stats.X} />
+              <StatRow label={mode === "ai" ? "AI won" : "O won"} value={stats.O} />
+              <StatRow label="Ties" value={stats.ties} />
             </CardContent>
           </Card>
 
@@ -224,7 +226,7 @@ function GameLayout({
           <div className="grid grid-cols-2 gap-2">
             <Link href="/rules">
               <Button variant="outline" size="default" className="w-full">
-                Regels
+                Rules
               </Button>
             </Link>
             <Link href="/">
@@ -253,7 +255,7 @@ export default function GamePage() {
     <Suspense
       fallback={
         <AppShell>
-          <div className="text-center py-16 text-muted-foreground">Laden…</div>
+          <div className="text-center py-16 text-muted-foreground">Loading…</div>
         </AppShell>
       }
     >

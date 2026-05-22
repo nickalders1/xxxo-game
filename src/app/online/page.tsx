@@ -118,24 +118,24 @@ export default function OnlinePage() {
   const joinQueue = () => {
     const trimmed = playerName.trim();
     if (!trimmed) {
-      setError("Voer een naam in");
+      setError("Enter a name");
       return;
     }
     const socket = socketRef.current;
     if (!socket) {
-      setError("Socket niet beschikbaar");
+      setError("Socket unavailable");
       return;
     }
     if (!connected) {
       socket.connect();
-      setError("Verbinding maken…");
+      setError("Connecting…");
       setTimeout(() => {
         if (socket.connected) {
           socket.emit("join-queue", { playerName: trimmed });
           localStorage.setItem("playerName", trimmed);
           setError("");
         } else {
-          setError("Kan geen verbinding maken met server");
+          setError("Can't connect to server");
         }
       }, 1000);
       return;
@@ -159,13 +159,13 @@ export default function OnlinePage() {
   return (
     <AppShell>
       <TopBar
-        title="Online spelen"
+        title="Play online"
         subtitle={
           <span className="inline-flex items-center gap-2">
             {connected ? (
               <>
                 <Wifi className="h-3.5 w-3.5 text-accent" />
-                <span>Verbonden</span>
+                <span>Connected</span>
                 <span className="text-border">•</span>
                 <Users className="h-3.5 w-3.5" />
                 <span className="tabular">{onlinePlayers} online</span>
@@ -173,7 +173,7 @@ export default function OnlinePage() {
             ) : (
               <>
                 <WifiOff className="h-3.5 w-3.5 text-destructive" />
-                <span>Niet verbonden</span>
+                <span>Disconnected</span>
               </>
             )}
           </span>
@@ -184,9 +184,9 @@ export default function OnlinePage() {
       <div className="max-w-xl mx-auto space-y-5">
         <Card>
           <CardHeader>
-            <CardTitle>Speler naam</CardTitle>
+            <CardTitle>Player name</CardTitle>
             <CardDescription>
-              Deze naam zien tegenstanders tijdens het spelen.
+              Opponents see this name during play.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -194,7 +194,7 @@ export default function OnlinePage() {
               ref={playerNameInputRef}
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              placeholder="Voer je naam in…"
+              placeholder="Enter your name…"
               maxLength={20}
               disabled={isSearching}
               autoComplete="nickname"
@@ -212,7 +212,7 @@ export default function OnlinePage() {
               <CardTitle>Matchmaking</CardTitle>
             </div>
             <CardDescription>
-              Vind automatisch een tegenstander.
+              Automatically find an opponent.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -224,28 +224,28 @@ export default function OnlinePage() {
                 className="w-full tap-target"
               >
                 <Play className="h-4 w-4" />
-                {connected ? "Zoek spel" : "Verbinding maken…"}
+                {connected ? "Find game" : "Connecting…"}
               </Button>
             ) : (
               <div className="space-y-4">
                 <div className="text-center py-4">
                   <div className="mx-auto mb-3 h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  <p className="font-semibold">Zoeken naar tegenstander…</p>
+                  <p className="font-semibold">Looking for an opponent…</p>
                   <p className="text-sm text-muted-foreground">
-                    Positie in wachtrij: #{queuePosition}
+                    Queue position: #{queuePosition}
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 text-sm">
                   <div className="rounded-lg bg-muted/30 px-3 py-2 flex items-center gap-2">
                     <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Wachttijd:</span>
+                    <span className="text-muted-foreground">Wait time:</span>
                     <span className="ml-auto font-semibold tabular">
                       {formatTime(estimatedWait)}
                     </span>
                   </div>
                   <div className="rounded-lg bg-muted/30 px-3 py-2 flex items-center gap-2">
                     <Users className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-muted-foreground">Positie:</span>
+                    <span className="text-muted-foreground">Position:</span>
                     <span className="ml-auto font-semibold tabular">
                       #{queuePosition}
                     </span>
@@ -257,7 +257,7 @@ export default function OnlinePage() {
                   size="lg"
                   className="w-full tap-target"
                 >
-                  Annuleren
+                  Cancel
                 </Button>
               </div>
             )}
@@ -266,25 +266,25 @@ export default function OnlinePage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Snelle regels</CardTitle>
+            <CardTitle>Quick rules</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-muted-foreground">4 op een rij</span>
-              <span className="font-semibold text-accent">1 punt</span>
+              <span className="text-muted-foreground">4 in a row</span>
+              <span className="font-semibold text-accent">1 point</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">5 op een rij</span>
-              <span className="font-semibold text-accent">2 punten</span>
+              <span className="text-muted-foreground">5 in a row</span>
+              <span className="font-semibold text-accent">2 points</span>
             </div>
             <p className="pt-2 text-foreground/80">
-              <strong>Belangrijk:</strong> je mag niet naast je eigen laatste
-              zet plaatsen. Alle 8 vakjes rondom je laatste zet zijn verboden.
+              <strong>Important:</strong> you can&apos;t place next to your
+              own last move. All 8 cells around your last move are forbidden.
             </p>
             <div className="pt-3">
               <Link href="/rules">
                 <Button variant="outline" size="sm" className="w-full">
-                  Volledige regels
+                  Full rules
                 </Button>
               </Link>
             </div>

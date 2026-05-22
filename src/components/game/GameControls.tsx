@@ -8,7 +8,7 @@ interface GameControlsProps {
   resetLabel?: string;
 }
 
-export function GameControls({ onReset, resetLabel = "Nieuwe partij" }: GameControlsProps) {
+export function GameControls({ onReset, resetLabel = "New game" }: GameControlsProps) {
   return (
     <Button
       type="button"

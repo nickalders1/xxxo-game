@@ -62,7 +62,7 @@ function OnlineGameContent() {
   const [game, setGame] = useState<OnlineGameData | null>(null);
   const [connected, setConnected] = useState(false);
   const [mySymbol, setMySymbol] = useState<Player | null>(null);
-  const [statusMessage, setStatusMessage] = useState("Verbinden…");
+  const [statusMessage, setStatusMessage] = useState("Connecting…");
   const [winnerMessage, setWinnerMessage] = useState<string | null>(null);
   const [gameTime, setGameTime] = useState(0);
   const [resolvedName, setResolvedName] = useState("");
@@ -74,10 +74,10 @@ function OnlineGameContent() {
     if (typeof window !== "undefined" && (!name || name.trim() === "")) {
       name = window.localStorage.getItem("playerName");
     }
-    setResolvedName(name ?? "Onbekend");
+    setResolvedName(name ?? "Unknown");
 
     if (!gameId || !name) {
-      setStatusMessage("Ongeldige game — terug naar lobby…");
+      setStatusMessage("Invalid game — returning to lobby…");
       setTimeout(() => (window.location.href = "/online"), 1500);
       return;
     }
@@ -92,7 +92,7 @@ function OnlineGameContent() {
     };
     const onDisconnect = () => {
       setConnected(false);
-      setStatusMessage("Verbinding verbroken");
+      setStatusMessage("Connection lost");
     };
     const onGameJoined = ({
       game,
@@ -116,17 +116,17 @@ function OnlineGameContent() {
     }) => {
       setGame(game);
       if (winner === "tie") {
-        setWinnerMessage("Gelijkspel!");
+        setWinnerMessage("Tie!");
       } else {
         const w = game.players[winner];
-        setWinnerMessage(`${w?.name ?? `Speler ${winner}`} wint!`);
+        setWinnerMessage(`${w?.name ?? `Player ${winner}`} wins!`);
       }
     };
     const onPlayerDisconnected = ({ playerName }: { playerName: string }) => {
-      setStatusMessage(`${playerName} heeft het spel verlaten`);
+      setStatusMessage(`${playerName} left the game`);
     };
     const onError = ({ message }: { message: string }) => {
-      setStatusMessage(`Fout: ${message}`);
+      setStatusMessage(`Error: ${message}`);
     };
 
     s.on("connect", onConnect);
@@ -157,20 +157,20 @@ function OnlineGameContent() {
   useEffect(() => {
     if (!game || winnerMessage) return;
     if (game.status === "waiting") {
-      setStatusMessage("Wachten op tegenstander…");
+      setStatusMessage("Waiting for opponent…");
       return;
     }
     if (game.status === "finished") return;
     if (game.gameState.bonusTurn) {
       const who = game.players[game.gameState.currentPlayer];
-      setStatusMessage(`${who?.name ?? "Speler"} krijgt een bonus beurt!`);
+      setStatusMessage(`${who?.name ?? "Player"} gets a bonus turn!`);
       return;
     }
     const current = game.players[game.gameState.currentPlayer];
     if (current?.symbol === mySymbol) {
-      setStatusMessage("Jouw beurt!");
+      setStatusMessage("Your turn!");
     } else {
-      setStatusMessage(`${current?.name ?? "Tegenstander"} is aan de beurt`);
+      setStatusMessage(`${current?.name ?? "Opponent"}'s turn`);
     }
   }, [game, mySymbol, winnerMessage]);
 
@@ -198,11 +198,11 @@ function OnlineGameContent() {
             <p className="text-xs text-muted-foreground">
               Game ID: <span className="tabular">{gameId}</span>
               <br />
-              Speler: {resolvedName}
+              Player: {resolvedName}
             </p>
             <Link href="/online">
               <Button variant="outline" className="w-full">
-                Terug naar lobby
+                Back to lobby
               </Button>
             </Link>
           </CardContent>
@@ -230,7 +230,7 @@ function OnlineGameContent() {
             ) : (
               <WifiOff className="h-3.5 w-3.5 text-destructive" />
             )}
-            <span>{connected ? "Verbonden" : "Niet verbonden"}</span>
+            <span>{connected ? "Connected" : "Disconnected"}</span>
             <span className="text-border">•</span>
             <Clock className="h-3.5 w-3.5" />
             <span className="tabular">{formatTime(gameTime)}</span>
@@ -259,13 +259,13 @@ function OnlineGameContent() {
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
                 <Users className="h-4 w-4 text-muted-foreground" />
-                Spelers
+                Players
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <PlayerRow
                 player="X"
-                name={game.players.X?.name ?? "Wachten…"}
+                name={game.players.X?.name ?? "Waiting…"}
                 isMe={game.players.X?.symbol === mySymbol}
                 isTurn={
                   game.gameState.currentPlayer === "X" && game.gameState.gameActive
@@ -273,7 +273,7 @@ function OnlineGameContent() {
               />
               <PlayerRow
                 player="O"
-                name={game.players.O?.name ?? "Wachten…"}
+                name={game.players.O?.name ?? "Waiting…"}
                 isMe={game.players.O?.symbol === mySymbol}
                 isTurn={
                   game.gameState.currentPlayer === "O" && game.gameState.gameActive
@@ -294,7 +294,7 @@ function OnlineGameContent() {
             <Link href="/online">
               <Button variant="default" size="default" className="w-full">
                 <Users className="h-4 w-4" />
-                Nieuw spel
+                New game
               </Button>
             </Link>
             <Link href="/">
@@ -334,9 +334,9 @@ function PlayerRow({
       <PlayerBadge player={player} size="md" />
       <div className="min-w-0 flex-1">
         <p className="font-semibold truncate">
-          {name} {isMe && <span className="text-muted-foreground">(Jij)</span>}
+          {name} {isMe && <span className="text-muted-foreground">(You)</span>}
         </p>
-        <p className="text-xs text-muted-foreground">Speler {player}</p>
+        <p className="text-xs text-muted-foreground">Player {player}</p>
       </div>
       {isTurn && (
         <span
@@ -353,7 +353,7 @@ export default function OnlineGamePage() {
     <Suspense
       fallback={
         <AppShell>
-          <div className="text-center py-16 text-muted-foreground">Laden…</div>
+          <div className="text-center py-16 text-muted-foreground">Loading…</div>
         </AppShell>
       }
     >

@@ -202,7 +202,7 @@ function updateQueuePositions(io) {
 }
 
 // Create HTTP server and Socket.IO - Listen on all interfaces
-const allowedOrigin = process.env.ALLOWED_ORIGIN || "https://xxxo.bothosts.com";
+const allowedOrigin = process.env.ALLOWED_ORIGIN || "https://xxxo-game.com";
 const server = createServer();
 const io = new Server(server, {
   cors: {

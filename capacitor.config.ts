@@ -14,7 +14,7 @@ const config: CapacitorConfig = {
     url:
       process.env.CAP_DEV === "1"
         ? process.env.CAP_DEV_URL || "http://localhost:3000"
-        : "https://xxxo.bothosts.com",
+        : "https://xxxo-game.com",
     cleartext: process.env.CAP_DEV === "1",
     androidScheme: "https",
   },

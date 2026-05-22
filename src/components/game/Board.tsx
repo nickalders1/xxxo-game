@@ -35,7 +35,7 @@ export function Board({
       <div
         className="grid grid-cols-5 gap-1.5 sm:gap-2"
         role="grid"
-        aria-label="XXXo speelbord"
+        aria-label="XXXo board"
       >
         {board.map((rowCells, row) =>
           rowCells.map((value, col) => {

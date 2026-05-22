@@ -179,24 +179,47 @@ pm2 logs socket --lines 30
 sudo apt install -y nginx
 ```
 
-Maak `/etc/nginx/sites-available/xxxo`:
+### Cloudflare instellingen (vooraf — eenmalig)
+
+Omdat het domain via Cloudflare proxied is, configureer eerst Cloudflare:
+
+1. **SSL/TLS → Overview** → zet op **Full (strict)** (niet Flexible — dat geeft redirect loops).
+2. **SSL/TLS → Origin Server → Create Certificate** → laat alle defaults staan → **Create**. Cloudflare geeft je een certificaat en private key (15 jaar geldig, geen vernieuwing nodig).
+3. Op je VM, sla beide op:
+   ```bash
+   sudo mkdir -p /etc/ssl/cloudflare
+   sudo nano /etc/ssl/cloudflare/xxxo-game.com.crt   # plak het certificate hier
+   sudo nano /etc/ssl/cloudflare/xxxo-game.com.key   # plak de private key hier
+   sudo chmod 600 /etc/ssl/cloudflare/xxxo-game.com.key
+   ```
+4. **DNS → Records** → zorg dat zowel `@` als `www` (CNAME → `xxxo-game.com`) bestaan, beide met proxy aan (oranje wolkje).
+5. **Network → WebSockets** → aan (default, maar dubbel-check).
+
+Maak daarna `/etc/nginx/sites-available/xxxo`:
 
 ```nginx
 server {
     listen 80;
-    server_name xxxo.bothosts.com;
-
-    # Laat Certbot HTTP-01 challenge door
-    location /.well-known/acme-challenge/ { root /var/www/letsencrypt; }
-    location / { return 301 https://$host$request_uri; }
+    server_name xxxo-game.com www.xxxo-game.com;
+    return 301 https://xxxo-game.com$request_uri;
 }
 
 server {
     listen 443 ssl http2;
-    server_name xxxo.bothosts.com;
+    server_name www.xxxo-game.com;
 
-    ssl_certificate     /etc/letsencrypt/live/xxxo.bothosts.com/fullchain.pem;
-    ssl_certificate_key /etc/letsencrypt/live/xxxo.bothosts.com/privkey.pem;
+    ssl_certificate     /etc/ssl/cloudflare/xxxo-game.com.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/xxxo-game.com.key;
+
+    return 301 https://xxxo-game.com$request_uri;
+}
+
+server {
+    listen 443 ssl http2;
+    server_name xxxo-game.com;
+
+    ssl_certificate     /etc/ssl/cloudflare/xxxo-game.com.crt;
+    ssl_certificate_key /etc/ssl/cloudflare/xxxo-game.com.key;
 
     # Socket.IO: WebSocket upgrade naar de socket server (poort 3001)
     location /socket.io/ {
@@ -235,17 +258,9 @@ sudo nginx -t
 sudo systemctl reload nginx
 ```
 
-### 6. SSL certificaat met Certbot
+Geen Certbot nodig — Cloudflare Origin certificaat is 15 jaar geldig.
 
-```bash
-sudo apt install -y certbot python3-certbot-nginx
-sudo mkdir -p /var/www/letsencrypt
-sudo certbot --nginx -d xxxo.bothosts.com
-```
-
-Certbot regelt automatisch de vernieuwing (`systemctl status certbot.timer`).
-
-### 7. Firewall
+### 6. Firewall
 
 ```bash
 sudo ufw allow OpenSSH
@@ -255,12 +270,12 @@ sudo ufw enable
 
 De poorten 3000 en 3001 **niet** open zetten — alleen nginx praat ermee.
 
-### 8. Eerste test
+### 7. Eerste test
 
 Vanaf je laptop:
 
 ```bash
-curl -I https://xxxo.bothosts.com
+curl -I https://xxxo-game.com
 # moet HTTP/2 200 teruggeven
 ```
 

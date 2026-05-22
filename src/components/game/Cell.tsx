@@ -1,5 +1,6 @@
 "use client";
 
+import { memo } from "react";
 import { cn } from "@/lib/utils";
 import type { Cell as CellValue, LastMoves, Player } from "@/lib/game/types";
 
@@ -17,7 +18,7 @@ interface CellProps {
   onClick: (row: number, col: number) => void;
 }
 
-export function Cell({
+function CellInner({
   row,
   col,
   value,
@@ -39,8 +40,8 @@ export function Cell({
       disabled={!isClickable}
       aria-label={
         isEmpty
-          ? `Lege cel rij ${row + 1}, kolom ${col + 1}`
-          : `${value} op rij ${row + 1}, kolom ${col + 1}`
+          ? `Empty cell row ${row + 1}, column ${col + 1}`
+          : `${value} at row ${row + 1}, column ${col + 1}`
       }
       data-player={value || undefined}
       data-last={isLastFor ?? undefined}
@@ -73,6 +74,10 @@ export function Cell({
     </button>
   );
 }
+
+// Memoise: a board has 25 cells but only 1-2 change per turn. Without this,
+// every state update re-renders all 25 components.
+export const Cell = memo(CellInner);
 
 export function getLastFor(
   row: number,

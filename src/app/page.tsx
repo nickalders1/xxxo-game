@@ -74,9 +74,9 @@ function MiniBoardPreview() {
         ))}
       </div>
       <p className="mt-4 text-center text-sm text-muted-foreground">
-        4 op een rij = <span className="text-foreground font-semibold">1 punt</span>
+        4 in a row = <span className="text-foreground font-semibold">1 point</span>
         {"  •  "}
-        5 op een rij = <span className="text-foreground font-semibold">2 punten</span>
+        5 in a row = <span className="text-foreground font-semibold">2 points</span>
       </p>
     </div>
   );
@@ -87,51 +87,47 @@ export default function HomePage() {
     <AppShell>
       {/* Hero */}
       <section className="text-center mb-10 sm:mb-14">
-        <div className="inline-flex items-center gap-2 mb-4 rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-muted-foreground">
-          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
-          Strategische 5×5 tic-tac-toe
-        </div>
         <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-3">
           <span className="text-game-x">X</span>
           <span className="text-foreground">XX</span>
           <span className="text-game-o">o</span>
         </h1>
         <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
-          Maak 4 of 5 op een rij om punten te scoren. Plaats nooit naast je eigen
-          laatste zet. Hoogste score wint.
+          Make 4 or 5 in a row to score points. Never place next to your own
+          last move. Highest score wins.
         </p>
       </section>
 
       {/* Game Modes */}
       <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 sm:mb-14">
         <ModeCard
-          title="Lokaal"
-          description="Speel tegen iemand op dit apparaat"
+          title="Local"
+          description="Play against someone on this device"
           href="/game?mode=local"
           icon={<Users className="h-7 w-7" />}
-          cta="Start lokaal spel"
+          cta="Start local game"
         />
         <ModeCard
-          title="Tegen AI"
-          description="Speel tegen de computer (3 niveaus)"
+          title="vs AI"
+          description="Play against the computer (3 levels)"
           href="/game?mode=ai"
           icon={<Bot className="h-7 w-7" />}
-          cta="Speel tegen AI"
+          cta="Play against AI"
           highlighted
         />
         <ModeCard
           title="Online"
-          description="Vind een tegenstander wereldwijd"
+          description="Find an opponent worldwide"
           href="/online"
           icon={<Wifi className="h-7 w-7" />}
-          cta="Online spelen"
+          cta="Play online"
         />
       </section>
 
       {/* How it works */}
       <section className="mb-10 sm:mb-14">
         <h2 className="text-2xl font-bold tracking-tight text-center mb-6">
-          Hoe het werkt
+          How it works
         </h2>
         <MiniBoardPreview />
       </section>
@@ -143,15 +139,15 @@ export default function HomePage() {
             <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-foreground/80">
               <BookOpen className="h-6 w-6" />
             </div>
-            <CardTitle>Spelregels</CardTitle>
+            <CardTitle>Game rules</CardTitle>
             <CardDescription>
-              Volledige uitleg met voorbeelden en uitzonderingen
+              Full explanation with examples and edge cases
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Link href="/rules" className="block">
               <Button variant="outline" size="lg" className="w-full tap-target">
-                Bekijk regels
+                View rules
               </Button>
             </Link>
           </CardContent>
@@ -162,23 +158,23 @@ export default function HomePage() {
       <section className="grid sm:grid-cols-3 gap-6 mb-10 max-w-3xl mx-auto">
         <FeatureItem
           icon={<Users className="h-5 w-5" />}
-          title="Lokaal & AI"
-          desc="Speel tegen vrienden of de computer met 3 moeilijkheidsgraden."
+          title="Local & AI"
+          desc="Play against friends or the computer with 3 difficulty levels."
         />
         <FeatureItem
           icon={<Wifi className="h-5 w-5" />}
           title="Matchmaking"
-          desc="Vind automatisch een tegenstander van jouw niveau."
+          desc="Automatically find an opponent at your level."
         />
         <FeatureItem
           icon={<Trophy className="h-5 w-5" />}
-          title="Strategisch"
-          desc="Unieke regels maken dit dieper dan gewone tic-tac-toe."
+          title="Strategic"
+          desc="Unique rules make this deeper than regular tic-tac-toe."
         />
       </section>
 
       <footer className="text-center text-xs text-muted-foreground border-t border-border pt-6">
-        XXXo · Veel speelplezier
+        XXXo · Enjoy the game
       </footer>
     </AppShell>
   );

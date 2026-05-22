@@ -5,14 +5,14 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "XXXo The Game",
     short_name: "XXXo",
     description:
-      "Strategische 5×5 tic-tac-toe variant. Maak 4 of 5 op een rij om punten te scoren.",
+      "Strategic 5×5 tic-tac-toe variant. Make 4 or 5 in a row to score points.",
     start_url: "/",
     display: "standalone",
     orientation: "portrait",
     background_color: "#0D1117",
     theme_color: "#0D1117",
     categories: ["games", "entertainment"],
-    lang: "nl",
+    lang: "en",
     icons: [
       {
         src: "/icons/icon-192.png",
