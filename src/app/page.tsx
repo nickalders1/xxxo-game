@@ -7,198 +7,199 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  BookOpen,
-  Trophy,
-  User,
-  Bot,
-  Wifi,
-  Users,
-  Gamepad2,
-} from "lucide-react";
+import { AppShell } from "@/components/layout/AppShell";
+import { BookOpen, Bot, Trophy, Users, Wifi } from "lucide-react";
+
+interface ModeCardProps {
+  title: string;
+  description: string;
+  href: string;
+  icon: React.ReactNode;
+  cta: string;
+  highlighted?: boolean;
+}
+
+function ModeCard({
+  title,
+  description,
+  href,
+  icon,
+  cta,
+  highlighted,
+}: ModeCardProps) {
+  return (
+    <Card className="group transition-all duration-200 hover:border-primary/40 hover:bg-card/80">
+      <CardHeader className="text-center">
+        <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-foreground/80 group-hover:text-primary transition-colors">
+          {icon}
+        </div>
+        <CardTitle className="text-lg sm:text-xl">{title}</CardTitle>
+        <CardDescription>{description}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Link href={href} className="block">
+          <Button
+            variant={highlighted ? "default" : "secondary"}
+            size="lg"
+            className="w-full tap-target"
+          >
+            {cta}
+          </Button>
+        </Link>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MiniBoardPreview() {
+  // A static preview row showing an X 4-in-a-row pattern that scored a point.
+  const xPositions = new Set([6, 7, 8, 9]);
+  const oPositions = new Set([12]);
+  return (
+    <div className="bg-game-board rounded-2xl border border-border/60 p-3 shadow-xl max-w-sm mx-auto">
+      <div className="grid grid-cols-5 gap-1.5">
+        {Array.from({ length: 25 }, (_, i) => (
+          <div
+            key={i}
+            className={
+              xPositions.has(i)
+                ? "aspect-square rounded-md bg-game-x-soft text-game-x flex items-center justify-center text-sm font-bold tabular"
+                : oPositions.has(i)
+                ? "aspect-square rounded-md bg-game-o-soft text-game-o flex items-center justify-center text-sm font-bold tabular"
+                : "aspect-square rounded-md bg-game-cell"
+            }
+          >
+            {xPositions.has(i) ? "X" : oPositions.has(i) ? "O" : ""}
+          </div>
+        ))}
+      </div>
+      <p className="mt-4 text-center text-sm text-muted-foreground">
+        4 op een rij = <span className="text-foreground font-semibold">1 punt</span>
+        {"  •  "}
+        5 op een rij = <span className="text-foreground font-semibold">2 punten</span>
+      </p>
+    </div>
+  );
+}
 
 export default function HomePage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="mb-6">
-            <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500 to-pink-500 rounded-2xl mb-4">
-              <Gamepad2 className="h-10 w-10 text-white" />
-            </div>
-          </div>
-          <h1 className="text-5xl md:text-6xl font-bold mb-4 bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-            XXXo
-          </h1>
-          <p className="text-xl text-gray-300 max-w-2xl mx-auto">
-            Strategische 5x5 tic-tac-toe. Maak 4 of 5 op een rij om punten te
-            scoren!
-          </p>
+    <AppShell>
+      {/* Hero */}
+      <section className="text-center mb-10 sm:mb-14">
+        <div className="inline-flex items-center gap-2 mb-4 rounded-full border border-border bg-card/70 px-3 py-1 text-xs text-muted-foreground">
+          <span className="h-1.5 w-1.5 rounded-full bg-accent" />
+          Strategische 5×5 tic-tac-toe
         </div>
+        <h1 className="text-5xl sm:text-6xl font-bold tracking-tight mb-3">
+          <span className="text-game-x">X</span>
+          <span className="text-foreground">XX</span>
+          <span className="text-game-o">o</span>
+        </h1>
+        <p className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto">
+          Maak 4 of 5 op een rij om punten te scoren. Plaats nooit naast je eigen
+          laatste zet. Hoogste score wint.
+        </p>
+      </section>
 
-        {/* Game Mode Cards */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
-          {/* Local PvP */}
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto mb-4 p-3 bg-green-500 rounded-full w-fit">
-                <Users className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-white text-xl">Lokaal Spel</CardTitle>
-              <CardDescription className="text-gray-300">
-                Speel tegen een vriend op dit apparaat
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/game?mode=local" className="w-full">
-                <Button className="w-full bg-green-500 hover:bg-green-600 text-white h-12">
-                  <User className="mr-2 h-5 w-5" />
-                  Spelen
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+      {/* Game Modes */}
+      <section className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-10 sm:mb-14">
+        <ModeCard
+          title="Lokaal"
+          description="Speel tegen iemand op dit apparaat"
+          href="/game?mode=local"
+          icon={<Users className="h-7 w-7" />}
+          cta="Start lokaal spel"
+        />
+        <ModeCard
+          title="Tegen AI"
+          description="Speel tegen de computer (3 niveaus)"
+          href="/game?mode=ai"
+          icon={<Bot className="h-7 w-7" />}
+          cta="Speel tegen AI"
+          highlighted
+        />
+        <ModeCard
+          title="Online"
+          description="Vind een tegenstander wereldwijd"
+          href="/online"
+          icon={<Wifi className="h-7 w-7" />}
+          cta="Online spelen"
+        />
+      </section>
 
-          {/* AI Game */}
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto mb-4 p-3 bg-blue-500 rounded-full w-fit">
-                <Bot className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-white text-xl">Tegen AI</CardTitle>
-              <CardDescription className="text-gray-300">
-                Speel tegen de computer
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/game?mode=ai" className="w-full">
-                <Button className="w-full bg-blue-500 hover:bg-blue-600 text-white h-12">
-                  <Bot className="mr-2 h-5 w-5" />
-                  Spelen
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
+      {/* How it works */}
+      <section className="mb-10 sm:mb-14">
+        <h2 className="text-2xl font-bold tracking-tight text-center mb-6">
+          Hoe het werkt
+        </h2>
+        <MiniBoardPreview />
+      </section>
 
-          {/* Online Multiplayer */}
-          <Card className="bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105 md:col-span-2 lg:col-span-1">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto mb-4 p-3 bg-purple-500 rounded-full w-fit">
-                <Wifi className="h-8 w-8 text-white" />
-              </div>
-              <CardTitle className="text-white text-xl">Online</CardTitle>
-              <CardDescription className="text-gray-300">
-                Speel tegen spelers wereldwijd
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Link href="/online" className="w-full">
-                <Button className="w-full bg-purple-500 hover:bg-purple-600 text-white h-12">
-                  <Wifi className="mr-2 h-5 w-5" />
-                  Zoek Spel
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Info Cards */}
-        <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto mb-12">
-          <div className="md:col-span-2 flex justify-center">
-            <Card className="w-full max-w-xl bg-slate-800/50 border-slate-700 hover:bg-slate-800/70 transition-all duration-300 hover:scale-105">
-              <CardHeader className="text-center">
-                <div className="mx-auto mb-4 p-3 bg-orange-500 rounded-full w-fit">
-                  <BookOpen className="h-6 w-6 text-white" />
-                </div>
-                <CardTitle className="text-white">Spelregels</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Leer hoe je XXXo speelt
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <Link href="/rules" className="w-full">
-                  <Button
-                    variant="outline"
-                    className="w-full border-orange-500 text-orange-400 hover:bg-orange-500 hover:text-white bg-transparent"
-                  >
-                    Regels Bekijken
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-
-        {/* Game Preview */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl font-bold mb-6 text-white">Hoe het werkt</h2>
-          <div className="bg-slate-800/50 rounded-2xl p-6 max-w-md mx-auto border border-slate-700">
-            <div className="grid grid-cols-5 gap-1 mb-4">
-              {Array.from({ length: 25 }, (_, i) => (
-                <div
-                  key={i}
-                  className={`aspect-square rounded flex items-center justify-center text-sm font-bold ${
-                    i === 6 || i === 7 || i === 8 || i === 9
-                      ? "bg-purple-500 text-white"
-                      : i === 12
-                      ? "bg-pink-500 text-white"
-                      : "bg-slate-700"
-                  }`}
-                >
-                  {i === 6 || i === 7 || i === 8 || i === 9
-                    ? "X"
-                    : i === 12
-                    ? "O"
-                    : ""}
-                </div>
-              ))}
+      {/* Rules link */}
+      <section className="mb-12 max-w-md mx-auto">
+        <Card>
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-2 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-foreground/80">
+              <BookOpen className="h-6 w-6" />
             </div>
-            <p className="text-gray-300 text-sm">
-              4 op een rij = 1 punt • 5 op een rij = 2 punten
-            </p>
-          </div>
-        </div>
+            <CardTitle>Spelregels</CardTitle>
+            <CardDescription>
+              Volledige uitleg met voorbeelden en uitzonderingen
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link href="/rules" className="block">
+              <Button variant="outline" size="lg" className="w-full tap-target">
+                Bekijk regels
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </section>
 
-        {/* Features */}
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto mb-12">
-          <div className="text-center">
-            <div className="bg-green-500 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <User className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Lokaal & AI</h3>
-            <p className="text-gray-300">
-              Speel tegen vrienden of slimme AI met verschillende
-              moeilijkheidsgraden
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="bg-purple-500 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <Wifi className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">
-              Online Matchmaking
-            </h3>
-            <p className="text-gray-300">
-              Automatische matchmaking vindt tegenstanders van jouw niveau
-            </p>
-          </div>
-          <div className="text-center">
-            <div className="bg-orange-500 rounded-full p-4 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-              <Trophy className="h-8 w-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold text-white mb-2">Strategisch</h3>
-            <p className="text-gray-300">
-              Unieke regels maken dit veel strategischer dan gewone tic-tac-toe
-            </p>
-          </div>
-        </div>
+      {/* Features */}
+      <section className="grid sm:grid-cols-3 gap-6 mb-10 max-w-3xl mx-auto">
+        <FeatureItem
+          icon={<Users className="h-5 w-5" />}
+          title="Lokaal & AI"
+          desc="Speel tegen vrienden of de computer met 3 moeilijkheidsgraden."
+        />
+        <FeatureItem
+          icon={<Wifi className="h-5 w-5" />}
+          title="Matchmaking"
+          desc="Vind automatisch een tegenstander van jouw niveau."
+        />
+        <FeatureItem
+          icon={<Trophy className="h-5 w-5" />}
+          title="Strategisch"
+          desc="Unieke regels maken dit dieper dan gewone tic-tac-toe."
+        />
+      </section>
 
-        {/* Footer */}
-        <footer className="text-center text-gray-400 border-t border-slate-700 pt-8">
-          <p>&copy; 2024 XXXo Game. Veel plezier met spelen!</p>
-        </footer>
+      <footer className="text-center text-xs text-muted-foreground border-t border-border pt-6">
+        XXXo · Veel speelplezier
+      </footer>
+    </AppShell>
+  );
+}
+
+function FeatureItem({
+  icon,
+  title,
+  desc,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <div className="text-center">
+      <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-foreground/80">
+        {icon}
       </div>
+      <h3 className="font-semibold mb-1">{title}</h3>
+      <p className="text-sm text-muted-foreground">{desc}</p>
     </div>
   );
 }

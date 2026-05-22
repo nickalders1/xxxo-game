@@ -8,308 +8,258 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  Home,
+  AlertTriangle,
+  Lightbulb,
   Play,
   Target,
   Users,
   Zap,
-  AlertTriangle,
-  Lightbulb,
 } from "lucide-react";
+
+import { AppShell } from "@/components/layout/AppShell";
+import { TopBar } from "@/components/layout/TopBar";
+
+// Static example board: an X 5-in-a-row diagonal worth 2 points.
+const EXAMPLE_BOARD: ReadonlyArray<"X" | "O" | ""> = [
+  "X", "", "O", "", "",
+  "", "X", "", "O", "",
+  "", "", "X", "", "O",
+  "", "", "", "X", "",
+  "", "", "", "", "X",
+] as const;
 
 export default function RulesPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <Link href="/">
-            <Button
-              variant="outline"
-              className="border-slate-600 text-slate-300 hover:bg-slate-700 bg-transparent"
-            >
-              <Home className="mr-2 h-4 w-4" />
-              Home
-            </Button>
-          </Link>
-          <h1 className="text-4xl font-bold text-white">Spelregels</h1>
+    <AppShell>
+      <TopBar
+        title="Spelregels"
+        backHref="/"
+        right={
           <Link href="/game?mode=local">
-            <Button className="bg-green-500 hover:bg-green-600">
-              <Play className="mr-2 h-4 w-4" />
-              Spel Starten
+            <Button size="sm" className="tap-target">
+              <Play className="h-4 w-4" />
+              <span className="hidden sm:inline">Start spel</span>
             </Button>
           </Link>
-        </div>
+        }
+      />
 
-        <div className="max-w-4xl mx-auto space-y-8">
-          {/* Basic Rules */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Target className="h-6 w-6 text-purple-400" />
-                <CardTitle className="text-white">Basis Spelregels</CardTitle>
-              </div>
-              <CardDescription className="text-slate-300">
-                Leer de fundamentele regels van XXXo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-slate-300">
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-white">
-                  Doel van het Spel
-                </h3>
-                <p>
-                  Het doel is om meer punten te scoren dan je tegenstander door
-                  4 of 5 symbolen op een rij te maken (horizontaal, verticaal of
-                  diagonaal) op een 5x5 speelbord.
-                </p>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-white">Beurten</h3>
-                <ul className="list-disc list-inside space-y-2">
-                  <li>Speler X begint altijd</li>
-                  <li>Spelers wisselen om de beurt af</li>
-                  <li>Plaats je symbool (X of O) in een leeg vakje</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Scoring System */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Zap className="h-6 w-6 text-yellow-400" />
-                <CardTitle className="text-white">Punten Systeem</CardTitle>
-              </div>
-              <CardDescription className="text-slate-300">
-                Hoe je punten scoort in XXXo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-slate-300">
-              <div className="grid md:grid-cols-2 gap-6">
-                <div className="bg-slate-700/50 p-4 rounded-lg border border-yellow-500/20">
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    4 op een rij
-                  </h3>
-                  <p className="text-2xl font-bold text-yellow-400 mb-2">
-                    1 punt
-                  </p>
-                  <p>
-                    Maak 4 van je symbolen op een rij (horizontaal, verticaal of
-                    diagonaal)
-                  </p>
-                </div>
-                <div className="bg-slate-700/50 p-4 rounded-lg border border-green-500/20">
-                  <h3 className="text-lg font-semibold text-white mb-2">
-                    5 op een rij
-                  </h3>
-                  <p className="text-2xl font-bold text-green-400 mb-2">
-                    2 punten
-                  </p>
-                  <p>
-                    Maak 5 van je symbolen op een rij (horizontaal, verticaal of
-                    diagonaal)
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Special Rules */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <AlertTriangle className="h-6 w-6 text-red-400" />
-                <CardTitle className="text-white">Belangrijke Regels</CardTitle>
-              </div>
-              <CardDescription className="text-slate-300">
-                Speciale regels die het spel strategisch maken
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6 text-slate-300">
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-white">
-                  Bewegingsbeperking
-                </h3>
-                <div className="bg-red-900/20 border border-red-700 p-4 rounded-lg">
-                  <p className="font-semibold text-red-400 mb-2">
-                    Belangrijke Regel:
-                  </p>
-                  <p>
-                    Je mag <strong>NIET</strong> naast je laatste zet plaatsen.
-                    Dit betekent dat alle 8 vakjes rondom je laatste zet
-                    verboden zijn voor je volgende zet.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-white">
-                  Bonus Beurt
-                </h3>
-                <div className="bg-blue-900/20 border border-blue-700 p-4 rounded-lg">
-                  <p className="font-semibold text-blue-400 mb-2">
-                    Speciale Situatie:
-                  </p>
-                  <p>
-                    Als speler X geen geldige zet kan maken maar speler O wel,
-                    krijgt speler O een bonus beurt. Na deze bonus beurt eindigt
-                    het spel automatisch.
-                  </p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-white">Spel Einde</h3>
-                <ul className="list-disc list-inside space-y-2">
-                  <li>
-                    Het spel eindigt wanneer er nog maar 1 leeg vakje over is
-                  </li>
-                  <li>
-                    Het spel eindigt wanneer geen van beide spelers een geldige
-                    zet kan maken
-                  </li>
-                  <li>
-                    Het spel eindigt wanneer er geen punten meer te behalen zijn
-                  </li>
-                  <li>Het spel eindigt na een bonus beurt van speler O</li>
-                  <li>De speler met de meeste punten wint!</li>
-                </ul>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Strategy Tips */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <div className="flex items-center gap-3">
-                <Lightbulb className="h-6 w-6 text-yellow-400" />
-                <CardTitle className="text-white">Strategie Tips</CardTitle>
-              </div>
-              <CardDescription className="text-slate-300">
-                Tips om beter te worden in XXXo
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4 text-slate-300">
-              <ul className="space-y-3">
-                <li className="flex items-start gap-3">
-                  <span className="text-purple-400 font-bold">•</span>
-                  <span>
-                    Plan je zetten vooruit - denk na over waar je volgende zet
-                    mogelijk is
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-purple-400 font-bold">•</span>
-                  <span>
-                    Probeer je tegenstander in een positie te dwingen waar ze
-                    geen goede zetten hebben
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-purple-400 font-bold">•</span>
-                  <span>
-                    Ga voor 5 op een rij wanneer mogelijk - dubbele punten zijn
-                    het waard!
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-purple-400 font-bold">•</span>
-                  <span>
-                    Let op de bewegingsbeperking - gebruik dit tactisch tegen je
-                    tegenstander
-                  </span>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="text-purple-400 font-bold">•</span>
-                  <span>Probeer meerdere dreigingen tegelijk te creëren</span>
-                </li>
-              </ul>
-            </CardContent>
-          </Card>
-
-          {/* Visual Example */}
-          <Card className="bg-slate-800/50 border-slate-700">
-            <CardHeader>
-              <CardTitle className="text-white">Voorbeeld Bord</CardTitle>
-              <CardDescription className="text-slate-300">
-                Een voorbeeld van hoe het spel eruit ziet
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-center">
-                <div className="grid grid-cols-5 gap-1 bg-slate-700/50 p-4 rounded-lg">
-                  {[
-                    "X",
-                    "",
-                    "O",
-                    "",
-                    "",
-                    "",
-                    "X",
-                    "",
-                    "O",
-                    "",
-                    "",
-                    "",
-                    "X",
-                    "",
-                    "O",
-                    "",
-                    "",
-                    "",
-                    "X",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "",
-                    "X",
-                  ].map((cell, i) => (
-                    <div
-                      key={i}
-                      className={`w-10 h-10 border border-slate-500 flex items-center justify-center text-sm font-bold rounded ${
-                        cell === "X"
-                          ? "bg-purple-500 text-white"
-                          : cell === "O"
-                          ? "bg-pink-500 text-white"
-                          : "bg-slate-600"
-                      }`}
-                    >
-                      {cell}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <p className="text-center text-slate-300 mt-4">
-                In dit voorbeeld heeft X 5 op een rij diagonaal gemaakt = 2
-                punten!
+      <div className="max-w-3xl mx-auto space-y-6">
+        {/* Basic rules */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Target className="h-5 w-5 text-primary" />
+              <CardTitle>Basisregels</CardTitle>
+            </div>
+            <CardDescription>De fundamentele regels van XXXo</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5 text-foreground/90">
+            <Section title="Doel">
+              <p>
+                Scoor meer punten dan je tegenstander door 4 of 5 symbolen op een
+                rij te maken (horizontaal, verticaal of diagonaal) op een 5×5
+                bord.
               </p>
-            </CardContent>
-          </Card>
+            </Section>
+            <Section title="Beurten">
+              <ul className="list-disc list-inside space-y-1 text-foreground/80">
+                <li>Speler X begint altijd</li>
+                <li>Spelers wisselen om de beurt af</li>
+                <li>Plaats je symbool in een leeg vakje</li>
+              </ul>
+            </Section>
+          </CardContent>
+        </Card>
 
-          {/* Call to Action */}
-          <div className="text-center">
-            <Link href="/game?mode=local">
-              <Button
-                size="lg"
-                className="bg-green-500 hover:bg-green-600 mr-4"
-              >
-                <Play className="mr-2 h-5 w-5" />
-                Lokaal Spelen
-              </Button>
-            </Link>
-            <Link href="/online">
-              <Button size="lg" className="bg-purple-500 hover:bg-purple-600">
-                <Users className="mr-2 h-5 w-5" />
-                Online Spelen
-              </Button>
-            </Link>
-          </div>
+        {/* Scoring */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Zap className="h-5 w-5 text-accent" />
+              <CardTitle>Punten</CardTitle>
+            </div>
+            <CardDescription>Hoe je scoort in XXXo</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <ScoreTile points={1} title="4 op een rij" />
+              <ScoreTile points={2} title="5 op een rij" />
+            </div>
+            <p className="text-sm text-muted-foreground mt-4">
+              Als je een bestaande 4 doortrekt naar een 5, scoor je alleen het
+              uitbreidingspunt (+1), niet de volle +2.
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Special rules */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <CardTitle>Belangrijke regels</CardTitle>
+            </div>
+            <CardDescription>Wat dit spel strategisch maakt</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            <Callout tone="destructive" title="Bewegingsbeperking">
+              <p>
+                Je mag <strong>niet</strong> naast je eigen laatste zet
+                plaatsen. Alle 8 vakjes rondom je laatste zet zijn verboden voor
+                je volgende beurt.
+              </p>
+            </Callout>
+
+            <Callout tone="primary" title="Bonus beurt">
+              <p>
+                Heeft één speler geen geldige zet meer maar de ander wel? Dan
+                krijgt de ander één bonusbeurt. Daarna eindigt het spel.
+              </p>
+            </Callout>
+
+            <Section title="Spel einde">
+              <ul className="list-disc list-inside space-y-1 text-foreground/80">
+                <li>Nog maar 1 leeg vakje over, óf</li>
+                <li>Geen van beide spelers kan een geldige zet maken, óf</li>
+                <li>Er zijn geen punten meer te behalen, óf</li>
+                <li>Na een bonusbeurt</li>
+              </ul>
+              <p className="text-foreground/90">
+                Speler met de meeste punten wint. Gelijke stand → gelijkspel.
+              </p>
+            </Section>
+          </CardContent>
+        </Card>
+
+        {/* Strategy */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-3">
+              <Lightbulb className="h-5 w-5 text-accent" />
+              <CardTitle>Strategie</CardTitle>
+            </div>
+            <CardDescription>Tips om beter te worden</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-2 text-foreground/90">
+              {[
+                "Plan vooruit — waar mag je over twee zetten nog komen?",
+                "Forceer je tegenstander in posities zonder goede zetten.",
+                "Ga voor 5 op een rij als het kan — dubbele punten waard.",
+                "Gebruik de bewegingsbeperking ook tactisch tegen jezelf.",
+                "Creëer meerdere dreigingen tegelijk.",
+              ].map((tip) => (
+                <li key={tip} className="flex items-start gap-2">
+                  <span className="mt-1 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                  <span>{tip}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+
+        {/* Example board */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Voorbeeldbord</CardTitle>
+            <CardDescription>
+              Diagonaal van linksboven naar rechtsonder — X heeft 5 op een rij = 2
+              punten.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="bg-game-board rounded-2xl border border-border/60 p-3 max-w-xs mx-auto">
+              <div className="grid grid-cols-5 gap-1.5">
+                {EXAMPLE_BOARD.map((cell, i) => (
+                  <div
+                    key={i}
+                    className={
+                      cell === "X"
+                        ? "aspect-square rounded-md bg-game-x-soft text-game-x flex items-center justify-center text-sm font-bold tabular"
+                        : cell === "O"
+                        ? "aspect-square rounded-md bg-game-o-soft text-game-o flex items-center justify-center text-sm font-bold tabular"
+                        : "aspect-square rounded-md bg-game-cell"
+                    }
+                  >
+                    {cell}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CTA */}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+          <Link href="/game?mode=local" className="flex-1 sm:flex-none">
+            <Button size="lg" className="w-full sm:w-auto tap-target">
+              <Play className="h-4 w-4" />
+              Lokaal spelen
+            </Button>
+          </Link>
+          <Link href="/online" className="flex-1 sm:flex-none">
+            <Button size="lg" variant="secondary" className="w-full sm:w-auto tap-target">
+              <Users className="h-4 w-4" />
+              Online spelen
+            </Button>
+          </Link>
         </div>
       </div>
+    </AppShell>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <h3 className="font-semibold">{title}</h3>
+      {children}
+    </div>
+  );
+}
+
+function ScoreTile({ points, title }: { points: 1 | 2; title: string }) {
+  return (
+    <div className="rounded-xl border border-border bg-muted/30 p-4">
+      <div className="text-sm text-muted-foreground mb-1">{title}</div>
+      <div className="flex items-baseline gap-2">
+        <span className="text-3xl font-bold tabular text-accent">{points}</span>
+        <span className="text-sm text-muted-foreground">
+          {points === 1 ? "punt" : "punten"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function Callout({
+  tone,
+  title,
+  children,
+}: {
+  tone: "destructive" | "primary";
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={
+        tone === "destructive"
+          ? "rounded-xl border border-destructive/40 bg-destructive/10 p-4"
+          : "rounded-xl border border-primary/40 bg-primary/10 p-4"
+      }
+    >
+      <div
+        className={
+          tone === "destructive"
+            ? "font-semibold text-destructive mb-1"
+            : "font-semibold text-primary mb-1"
+        }
+      >
+        {title}
+      </div>
+      <div className="text-foreground/90 text-sm">{children}</div>
     </div>
   );
 }

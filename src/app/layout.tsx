@@ -1,14 +1,36 @@
 import type React from "react";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { MultiplayerProvider } from "../../contexts/multiplayer-context";
+import { NativeShellInit } from "@/components/layout/NativeShellInit";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "XXXo The Game",
   description: "Een strategische variant van tic-tac-toe op een 5x5 bord",
+  applicationName: "XXXo",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "XXXo",
+  },
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0D1117",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({
@@ -17,9 +39,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="nl">
-      <body className={inter.className}>
-        <MultiplayerProvider>{children}</MultiplayerProvider>
+    <html lang="nl" className="dark" suppressHydrationWarning>
+      <body className={`${inter.className} bg-background text-foreground antialiased`}>
+        <NativeShellInit />
+        {children}
       </body>
     </html>
   );

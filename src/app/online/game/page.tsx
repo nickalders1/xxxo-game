@@ -1,19 +1,38 @@
 "use client";
 
-import { useState, useEffect, useMemo, Suspense } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Home, Wifi, WifiOff, Users, Clock } from "lucide-react";
-import SocketManager from "@/lib/socket";
 import type { Socket } from "socket.io-client";
 
-const BOARD_SIZE = 5;
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AppShell } from "@/components/layout/AppShell";
+import { TopBar } from "@/components/layout/TopBar";
+import { Board } from "@/components/game/Board";
+import { ScoreCard } from "@/components/game/ScoreCard";
+import { GameStatus } from "@/components/game/GameStatus";
+import { LastMoveLegend } from "@/components/game/LastMoveLegend";
+import { PlayerBadge } from "@/components/game/PlayerBadge";
 
-interface GameState {
-  board: string[][];
-  currentPlayer: "X" | "O";
+import SocketManager from "@/lib/socket";
+import type { Player } from "@/lib/game/types";
+import { Clock, Home, Users, Wifi, WifiOff } from "lucide-react";
+
+interface OnlinePlayer {
+  id: string;
+  name: string;
+  symbol: Player;
+}
+
+interface OnlineGameState {
+  board: ("X" | "O" | "")[][];
+  currentPlayer: Player;
   gameActive: boolean;
   score: { X: number; O: number };
   lastMove: {
@@ -23,466 +42,308 @@ interface GameState {
   bonusTurn: boolean;
 }
 
-interface Player {
+interface OnlineGameData {
   id: string;
-  name: string;
-  symbol: "X" | "O";
-}
-
-interface GameData {
-  id: string;
-  players: { X: Player | null; O: Player | null };
-  gameState: GameState;
+  players: { X: OnlinePlayer | null; O: OnlinePlayer | null };
+  gameState: OnlineGameState;
   status: "waiting" | "active" | "finished";
-  winner: "X" | "O" | "tie" | null;
+  winner: Player | "tie" | null;
 }
 
 function OnlineGameContent() {
   const searchParams = useSearchParams();
-
-  // Veilig uitlezen (kan initieel null zijn vóór hydration)
   const gameId = useMemo(() => searchParams?.get("id") ?? null, [searchParams]);
   const playerNameParam = useMemo(
     () => searchParams?.get("name") ?? null,
-    [searchParams]
+    [searchParams],
   );
 
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [game, setGame] = useState<GameData | null>(null);
+  const [game, setGame] = useState<OnlineGameData | null>(null);
   const [connected, setConnected] = useState(false);
-  const [mySymbol, setMySymbol] = useState<"X" | "O" | null>(null);
-  const [statusMessage, setStatusMessage] = useState("Verbinden...");
-  const [winner, setWinner] = useState<string | null>(null);
+  const [mySymbol, setMySymbol] = useState<Player | null>(null);
+  const [statusMessage, setStatusMessage] = useState("Verbinden…");
+  const [winnerMessage, setWinnerMessage] = useState<string | null>(null);
   const [gameTime, setGameTime] = useState(0);
-  const [actualPlayerName, setActualPlayerName] = useState<string>("");
+  const [resolvedName, setResolvedName] = useState("");
 
   useEffect(() => {
-    // Wacht tot params beschikbaar zijn
     if (gameId === null || playerNameParam === null) return;
 
-    console.log("Game page loaded with:", {
-      gameId,
-      playerName: playerNameParam,
-    });
-
-    // Naam bepalen (queryparam → localStorage → fallback)
-    let resolvedPlayerName: string | null = playerNameParam;
-    if (
-      typeof window !== "undefined" &&
-      (!resolvedPlayerName || resolvedPlayerName.trim() === "")
-    ) {
-      const stored = window.localStorage.getItem("playerName"); // string | null
-      if (stored && stored.trim() !== "") {
-        resolvedPlayerName = stored;
-      }
+    let name: string | null = playerNameParam;
+    if (typeof window !== "undefined" && (!name || name.trim() === "")) {
+      name = window.localStorage.getItem("playerName");
     }
+    setResolvedName(name ?? "Onbekend");
 
-    setActualPlayerName(resolvedPlayerName ?? "Unknown");
-
-    if (!gameId || !resolvedPlayerName) {
-      console.log("Missing parameters, redirecting to lobby", {
-        gameId,
-        resolvedPlayerName,
-      });
-      setTimeout(() => {
-        window.location.href = "/online";
-      }, 2000);
+    if (!gameId || !name) {
+      setStatusMessage("Ongeldige game — terug naar lobby…");
+      setTimeout(() => (window.location.href = "/online"), 1500);
       return;
     }
 
-    const socketManager = SocketManager.getInstance();
-    const socketConnection = socketManager.connect();
-    setSocket(socketConnection);
+    const manager = SocketManager.getInstance();
+    const s = manager.connect();
+    setSocket(s);
 
-    socketConnection.on("connect", () => {
+    const onConnect = () => {
       setConnected(true);
-      console.log("Connected, joining game with name:", resolvedPlayerName);
-      socketConnection.emit("join-game", {
-        gameId,
-        playerName: resolvedPlayerName,
-      });
-    });
-
-    socketConnection.on("disconnect", () => {
+      s.emit("join-game", { gameId, playerName: name });
+    };
+    const onDisconnect = () => {
       setConnected(false);
       setStatusMessage("Verbinding verbroken");
-    });
-
-    socketConnection.on("game-joined", ({ game, yourSymbol }) => {
+    };
+    const onGameJoined = ({
+      game,
+      yourSymbol,
+    }: {
+      game: OnlineGameData;
+      yourSymbol: Player;
+    }) => {
       setGame(game);
       setMySymbol(yourSymbol);
-      updateStatusMessage(game);
-    });
-
-    socketConnection.on("game-updated", ({ game }) => {
+    };
+    const onGameUpdated = ({ game }: { game: OnlineGameData }) => {
       setGame(game);
-      updateStatusMessage(game);
-    });
-
-    socketConnection.on("game-ended", ({ game, winner }) => {
+    };
+    const onGameEnded = ({
+      game,
+      winner,
+    }: {
+      game: OnlineGameData;
+      winner: Player | "tie";
+    }) => {
       setGame(game);
-      if (winner === "tie") setWinner("Gelijkspel! 🤝");
-      else {
-        const winnerPlayer = game.players[winner];
-        setWinner(`${winnerPlayer?.name} wint! 🎉`);
+      if (winner === "tie") {
+        setWinnerMessage("Gelijkspel!");
+      } else {
+        const w = game.players[winner];
+        setWinnerMessage(`${w?.name ?? `Speler ${winner}`} wint!`);
       }
-    });
-
-    socketConnection.on("player-disconnected", ({ playerName }) => {
+    };
+    const onPlayerDisconnected = ({ playerName }: { playerName: string }) => {
       setStatusMessage(`${playerName} heeft het spel verlaten`);
-    });
-
-    socketConnection.on("error", ({ message }) => {
-      console.log("Socket error:", message);
+    };
+    const onError = ({ message }: { message: string }) => {
       setStatusMessage(`Fout: ${message}`);
-    });
+    };
 
-    const timer = setInterval(() => setGameTime((p) => p + 1), 1000);
+    s.on("connect", onConnect);
+    s.on("disconnect", onDisconnect);
+    s.on("game-joined", onGameJoined);
+    s.on("game-updated", onGameUpdated);
+    s.on("game-ended", onGameEnded);
+    s.on("player-disconnected", onPlayerDisconnected);
+    s.on("error", onError);
+
+    const timer = setInterval(() => setGameTime((t) => t + 1), 1000);
 
     return () => {
       clearInterval(timer);
-      socketManager.disconnect();
+      s.off("connect", onConnect);
+      s.off("disconnect", onDisconnect);
+      s.off("game-joined", onGameJoined);
+      s.off("game-updated", onGameUpdated);
+      s.off("game-ended", onGameEnded);
+      s.off("player-disconnected", onPlayerDisconnected);
+      s.off("error", onError);
+      manager.disconnect();
     };
   }, [gameId, playerNameParam]);
 
-  const updateStatusMessage = (gameData: GameData) => {
-    if (gameData.status === "waiting") {
-      setStatusMessage("Wachten op tegenstander...");
-    } else if (gameData.status === "finished") {
-      return; // Winner message wordt apart gezet
-    } else if (gameData.gameState.bonusTurn) {
-      const bonusPlayer = gameData.players.O;
-      setStatusMessage(`${bonusPlayer?.name} krijgt een bonus beurt!`);
-    } else {
-      const currentPlayerData =
-        gameData.players[gameData.gameState.currentPlayer];
-      if (currentPlayerData?.symbol === mySymbol) {
-        setStatusMessage("Jouw beurt!");
-      } else {
-        setStatusMessage(`${currentPlayerData?.name} is aan de beurt`);
-      }
+  // Derive a status message from game state (without bonus/winner cases — those
+  // are handled separately via setWinnerMessage / explicit messages).
+  useEffect(() => {
+    if (!game || winnerMessage) return;
+    if (game.status === "waiting") {
+      setStatusMessage("Wachten op tegenstander…");
+      return;
     }
-  };
+    if (game.status === "finished") return;
+    if (game.gameState.bonusTurn) {
+      const who = game.players[game.gameState.currentPlayer];
+      setStatusMessage(`${who?.name ?? "Speler"} krijgt een bonus beurt!`);
+      return;
+    }
+    const current = game.players[game.gameState.currentPlayer];
+    if (current?.symbol === mySymbol) {
+      setStatusMessage("Jouw beurt!");
+    } else {
+      setStatusMessage(`${current?.name ?? "Tegenstander"} is aan de beurt`);
+    }
+  }, [game, mySymbol, winnerMessage]);
 
   const makeMove = (row: number, col: number) => {
     if (!socket || !game || !game.gameState.gameActive) return;
-
-    const currentPlayerData = game.players[game.gameState.currentPlayer];
-    if (currentPlayerData?.symbol !== mySymbol) {
-      setStatusMessage("Het is niet jouw beurt!");
-      return;
-    }
-
+    const current = game.players[game.gameState.currentPlayer];
+    if (current?.symbol !== mySymbol) return;
     socket.emit("make-move", { gameId, row, col });
   };
 
-  const formatTime = (seconds: number) => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, "0")}:${remainingSeconds
-      .toString()
-      .padStart(2, "0")}`;
+  const formatTime = (s: number) => {
+    const m = Math.floor(s / 60);
+    const r = s % 60;
+    return `${m.toString().padStart(2, "0")}:${r.toString().padStart(2, "0")}`;
   };
 
-  const getCellClass = (row: number, col: number) => {
-    const cell = game?.gameState.board[row][col] || "";
-    let classes =
-      "aspect-square rounded-lg border-2 flex items-center justify-center text-lg sm:text-xl font-bold transition-all duration-200 ";
-
-    if (cell === "") {
-      classes +=
-        "bg-slate-700 border-slate-600 hover:bg-slate-600 cursor-pointer active:scale-95";
-    } else {
-      classes += "cursor-not-allowed border-slate-500";
-      classes +=
-        cell === "X" ? " bg-purple-500 text-white" : " bg-pink-500 text-white";
-    }
-
-    const lastX = game?.gameState.lastMove.X;
-    const lastO = game?.gameState.lastMove.O;
-
-    if (lastX && lastX.row === row && lastX.col === col) {
-      classes += " ring-2 ring-purple-300";
-    }
-    if (lastO && lastO.row === row && lastO.col === col) {
-      classes += " ring-2 ring-pink-300";
-    }
-
-    return classes;
-  };
-
+  // Loading state (still waiting for first game-joined event)
   if (!game) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <Card className="bg-slate-800/50 border-slate-700 max-w-md">
-          <CardContent className="text-center p-6">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-400 mx-auto mb-4"></div>
-            <p className="text-white mb-4">{statusMessage}</p>
-            <div className="text-xs text-slate-400 mb-4">
-              Game ID: {gameId}
+      <AppShell>
+        <Card className="max-w-md mx-auto mt-12">
+          <CardContent className="p-6 text-center space-y-4">
+            <div className="mx-auto h-10 w-10 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+            <p className="font-semibold">{statusMessage}</p>
+            <p className="text-xs text-muted-foreground">
+              Game ID: <span className="tabular">{gameId}</span>
               <br />
-              Player: {actualPlayerName}
-            </div>
+              Speler: {resolvedName}
+            </p>
             <Link href="/online">
-              <Button className="bg-purple-500 hover:bg-purple-600">
-                Terug naar Lobby
+              <Button variant="outline" className="w-full">
+                Terug naar lobby
               </Button>
             </Link>
           </CardContent>
         </Card>
-      </div>
+      </AppShell>
     );
   }
 
+  const winner = game.winner;
+  const isLocked =
+    !game.gameState.gameActive ||
+    !connected ||
+    game.players[game.gameState.currentPlayer]?.symbol !== mySymbol;
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-4 sm:py-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-          <Link href="/online">
-            <Button
-              variant="outline"
-              className="border-slate-600 text-slate-300 hover:bg-slate-700 bg-transparent"
-            >
-              <Home className="mr-2 h-4 w-4" />
-              Lobby
-            </Button>
-          </Link>
+    <AppShell>
+      <TopBar
+        title="Online match"
+        backHref="/online"
+        backLabel="Lobby"
+        subtitle={
+          <span className="inline-flex items-center gap-2">
+            {connected ? (
+              <Wifi className="h-3.5 w-3.5 text-accent" />
+            ) : (
+              <WifiOff className="h-3.5 w-3.5 text-destructive" />
+            )}
+            <span>{connected ? "Verbonden" : "Niet verbonden"}</span>
+            <span className="text-border">•</span>
+            <Clock className="h-3.5 w-3.5" />
+            <span className="tabular">{formatTime(gameTime)}</span>
+          </span>
+        }
+      />
 
-          <div className="text-center">
-            <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-              Online Match
-            </h1>
-            <div className="flex items-center gap-4 justify-center text-sm text-slate-300">
-              <div className="flex items-center gap-2">
-                {connected ? (
-                  <Wifi className="h-4 w-4 text-green-400" />
-                ) : (
-                  <WifiOff className="h-4 w-4 text-red-400" />
-                )}
-                <span>{connected ? "Verbonden" : "Niet verbonden"}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4" />
-                <span>{formatTime(gameTime)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="w-20"></div>
+      <div className="grid lg:grid-cols-[1fr_18rem] gap-6 lg:gap-8 items-start">
+        {/* Board */}
+        <div className="space-y-4">
+          <GameStatus message={winnerMessage ?? statusMessage} winner={winner} />
+          <Board
+            board={game.gameState.board}
+            lastMove={game.gameState.lastMove}
+            currentPlayer={game.gameState.currentPlayer}
+            gameActive={game.gameState.gameActive}
+            locked={isLocked}
+            onMove={makeMove}
+          />
+          <LastMoveLegend />
         </div>
 
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Game Board */}
-          <div className="lg:col-span-3">
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-4">
-                <CardTitle className="text-center text-white text-lg sm:text-xl">
-                  {winner ? winner : statusMessage}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6">
-                <div className="relative">
-                  {/* Game Over Overlay */}
-                  {winner && (
-                    <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/80 rounded-lg">
-                      <div className="bg-slate-800 border border-slate-600 text-white rounded-xl p-6 text-center max-w-xs w-full mx-4">
-                        <h2 className="text-xl font-semibold mb-4">{winner}</h2>
-                        <div className="space-y-3">
-                          <Link href="/online" className="block">
-                            <Button className="w-full bg-purple-500 hover:bg-purple-600">
-                              <Users className="mr-2 h-4 w-4" />
-                              Nieuw Spel Zoeken
-                            </Button>
-                          </Link>
-                          <Link href="/" className="block">
-                            <Button
-                              variant="outline"
-                              className="w-full border-slate-600 text-slate-300 bg-transparent"
-                            >
-                              <Home className="mr-2 h-4 w-4" />
-                              Home
-                            </Button>
-                          </Link>
-                        </div>
-                      </div>
-                    </div>
-                  )}
+        {/* Sidebar */}
+        <aside className="space-y-4">
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Users className="h-4 w-4 text-muted-foreground" />
+                Spelers
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <PlayerRow
+                player="X"
+                name={game.players.X?.name ?? "Wachten…"}
+                isMe={game.players.X?.symbol === mySymbol}
+                isTurn={
+                  game.gameState.currentPlayer === "X" && game.gameState.gameActive
+                }
+              />
+              <PlayerRow
+                player="O"
+                name={game.players.O?.name ?? "Wachten…"}
+                isMe={game.players.O?.symbol === mySymbol}
+                isTurn={
+                  game.gameState.currentPlayer === "O" && game.gameState.gameActive
+                }
+              />
+            </CardContent>
+          </Card>
 
-                  {/* Board */}
-                  <div className="grid grid-cols-5 gap-2 max-w-md mx-auto">
-                    {game.gameState.board.map((row, rowIndex) =>
-                      row.map((cell, colIndex) => (
-                        <button
-                          key={`${rowIndex}-${colIndex}`}
-                          className={getCellClass(rowIndex, colIndex)}
-                          onClick={() => makeMove(rowIndex, colIndex)}
-                          disabled={
-                            !game.gameState.gameActive ||
-                            cell !== "" ||
-                            !connected
-                          }
-                        >
-                          {cell}
-                        </button>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
+          <ScoreCard
+            score={game.gameState.score}
+            currentPlayer={game.gameState.currentPlayer}
+            gameActive={game.gameState.gameActive}
+            labelX={game.players.X?.name}
+            labelO={game.players.O?.name}
+          />
+
+          <div className="grid grid-cols-2 gap-2">
+            <Link href="/online">
+              <Button variant="default" size="default" className="w-full">
+                <Users className="h-4 w-4" />
+                Nieuw spel
+              </Button>
+            </Link>
+            <Link href="/">
+              <Button variant="outline" size="default" className="w-full">
+                <Home className="h-4 w-4" />
+                Home
+              </Button>
+            </Link>
           </div>
-
-          {/* Sidebar */}
-          <div className="space-y-4">
-            {/* Players */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Spelers
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div
-                  className={`p-3 rounded-lg border ${
-                    game.players.X?.symbol === mySymbol
-                      ? "bg-purple-900/30 border-purple-700"
-                      : "bg-slate-700/50 border-slate-600"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-semibold">
-                        {game.players.X?.name || "Wachten..."}{" "}
-                        {game.players.X?.symbol === mySymbol && "(Jij)"}
-                      </p>
-                      <p className="text-slate-400 text-sm">Speler X</p>
-                    </div>
-                    {game.gameState.currentPlayer === "X" &&
-                      game.gameState.gameActive && (
-                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                      )}
-                  </div>
-                </div>
-
-                <div
-                  className={`p-3 rounded-lg border ${
-                    game.players.O?.symbol === mySymbol
-                      ? "bg-pink-900/30 border-pink-700"
-                      : "bg-slate-700/50 border-slate-600"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white font-semibold">
-                        {game.players.O?.name || "Wachten..."}{" "}
-                        {game.players.O?.symbol === mySymbol && "(Jij)"}
-                      </p>
-                      <p className="text-slate-400 text-sm">Speler O</p>
-                    </div>
-                    {game.gameState.currentPlayer === "O" &&
-                      game.gameState.gameActive && (
-                        <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                      )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Score */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg">Score</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-purple-500 rounded"></div>
-                    <span className="text-slate-300">Speler X</span>
-                  </div>
-                  <span className="text-white font-bold text-xl">
-                    {game.gameState.score.X}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-pink-500 rounded"></div>
-                    <span className="text-slate-300">Speler O</span>
-                  </div>
-                  <span className="text-white font-bold text-xl">
-                    {game.gameState.score.O}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Status */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg">Status</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-slate-300">Status:</span>
-                  <span className="text-white">
-                    {game.status === "waiting" && "Wachten"}
-                    {game.status === "active" && "Actief"}
-                    {game.status === "finished" && "Afgelopen"}
-                  </span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-300">Speeltijd:</span>
-                  <span className="text-white">{formatTime(gameTime)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-300">Jouw symbool:</span>
-                  <span className="text-white font-bold">
-                    {mySymbol || "?"}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Acties */}
-            <Card className="bg-slate-800/50 border-slate-700">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-white text-lg">Acties</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <Link href="/online" className="block">
-                  <Button
-                    className="w-full bg-purple-500 hover:bg-purple-600"
-                    size="sm"
-                  >
-                    <Users className="mr-2 h-4 w-4" />
-                    Nieuw Spel
-                  </Button>
-                </Link>
-                <Link href="/rules" className="block">
-                  <Button
-                    variant="outline"
-                    className="w-full border-slate-600 text-slate-300 bg-transparent"
-                    size="sm"
-                  >
-                    Spelregels
-                  </Button>
-                </Link>
-                <Link href="/" className="block">
-                  <Button
-                    variant="outline"
-                    className="w-full border-slate-600 text-slate-300 bg-transparent"
-                    size="sm"
-                  >
-                    <Home className="mr-2 h-4 w-4" />
-                    Home
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+        </aside>
       </div>
+    </AppShell>
+  );
+}
+
+function PlayerRow({
+  player,
+  name,
+  isMe,
+  isTurn,
+}: {
+  player: Player;
+  name: string;
+  isMe: boolean;
+  isTurn: boolean;
+}) {
+  return (
+    <div
+      className={
+        isTurn
+          ? player === "X"
+            ? "flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2.5 ring-2 ring-game-x"
+            : "flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2.5 ring-2 ring-game-o"
+          : "flex items-center gap-3 rounded-lg border bg-muted/30 px-3 py-2.5"
+      }
+    >
+      <PlayerBadge player={player} size="md" />
+      <div className="min-w-0 flex-1">
+        <p className="font-semibold truncate">
+          {name} {isMe && <span className="text-muted-foreground">(Jij)</span>}
+        </p>
+        <p className="text-xs text-muted-foreground">Speler {player}</p>
+      </div>
+      {isTurn && (
+        <span
+          aria-hidden="true"
+          className="h-2 w-2 rounded-full bg-accent animate-pulse"
+        />
+      )}
     </div>
   );
 }
@@ -491,9 +352,9 @@ export default function OnlineGamePage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center text-white">
-          Loading...
-        </div>
+        <AppShell>
+          <div className="text-center py-16 text-muted-foreground">Laden…</div>
+        </AppShell>
       }
     >
       <OnlineGameContent />

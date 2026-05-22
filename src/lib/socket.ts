@@ -14,14 +14,23 @@ class SocketManager {
   connect(): Socket {
     if (!this.socket) {
       // Decide URL:
-      // - If NEXT_PUBLIC_SOCKET_URL is set, use it.
-      // - Else, when the page is HTTPS, use same-origin (so it becomes WSS).
-      // - Else (local dev), use the local socket server.
+      // 1. If NEXT_PUBLIC_SOCKET_URL is set, use it.
+      // 2. HTTPS (production): same-origin (nginx proxies /socket.io/ → 3001),
+      //    so the connection upgrades to WSS automatically.
+      // 3. HTTP from a non-localhost host (LAN dev: phone, emulator, other
+      //    machine on the wifi): use the same hostname with port 3001. This
+      //    avoids "localhost" being interpreted as the emulator itself.
+      // 4. Local dev on the host machine: localhost:3001.
       const isBrowser = typeof window !== "undefined";
-      const defaultUrl =
-        isBrowser && window.location.protocol === "https:"
-          ? window.location.origin // e.g. https://xxxo.bothosts.com
-          : "http://localhost:3001";
+      let defaultUrl = "http://localhost:3001";
+      if (isBrowser) {
+        const { protocol, hostname } = window.location;
+        if (protocol === "https:") {
+          defaultUrl = window.location.origin;
+        } else if (hostname !== "localhost" && hostname !== "127.0.0.1") {
+          defaultUrl = `http://${hostname}:3001`;
+        }
+      }
 
       const url = process.env.NEXT_PUBLIC_SOCKET_URL || defaultUrl;
 
