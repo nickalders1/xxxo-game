@@ -427,9 +427,11 @@ io.on("connection", (socket) => {
   });
 });
 
-// Listen only local; Nginx will proxy this
-server.listen(port, "127.0.0.1", (err) => {
+// Default: bind to 127.0.0.1 (production behind nginx proxy).
+// For LAN dev (Capacitor emulator / physical device on same wifi) set
+// SOCKET_HOST=0.0.0.0 so the socket is reachable from outside the host.
+const host = process.env.SOCKET_HOST || "127.0.0.1";
+server.listen(port, host, (err) => {
   if (err) throw err;
-  console.log(`> Socket.IO server ready on http://0.0.0.0:${port}`);
-  console.log(`> Accessible from external domains`);
+  console.log(`> Socket.IO server ready on http://${host}:${port}`);
 });

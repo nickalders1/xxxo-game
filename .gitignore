@@ -39,3 +39,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# serwist / next-pwa generated service worker (regenerated on each build)
+/public/sw.js
+/public/sw.js.map
+/public/swe-worker-*.js
+/public/workbox-*.js
+
+# Claude Code agent working files (local only)
+.claude/
