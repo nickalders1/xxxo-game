@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!--
+    Maskable variant: full-bleed background so safe area (centre 80% diameter
+    circle) contains the entire glyph. Glyphs are pulled tighter to centre
+    and scaled down so they survive Android adaptive icon cropping.
+  -->
+  <rect width="512" height="512" fill="#0D1117"/>
+
+  <!-- Centre group, smaller scale so glyph stays within the 80% safe circle -->
+  <g transform="translate(256 256)">
+    <text x="-52" y="38"
+          font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, sans-serif"
+          font-weight="800"
+          font-size="220"
+          fill="#5EA4F5"
+          text-anchor="middle"
+          dominant-baseline="alphabetic">X</text>
+    <text x="74" y="70"
+          font-family="ui-sans-serif, system-ui, -apple-system, Segoe UI, Inter, sans-serif"
+          font-weight="800"
+          font-size="170"
+          fill="#F59E5B"
+          text-anchor="middle"
+          dominant-baseline="alphabetic">o</text>
+  </g>
+</svg>
