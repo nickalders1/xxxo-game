@@ -1,0 +1,25 @@
+{
+  // Tailwind 4 uses several non-standard at-rules (@theme, @custom-variant,
+  // @apply, @layer). The built-in VS Code CSS validator doesn't know about
+  // them and flags every one. Silence those specific diagnostics so real
+  // CSS issues (syntax errors, unknown properties) still show up.
+  "css.lint.unknownAtRules": "ignore",
+
+  // Tailwind 4 expects the official Tailwind CSS IntelliSense extension to
+  // own CSS class autocomplete + linting. Tell it to also activate inside
+  // template strings (cn(`...`), clsx(`...`)) which we use throughout.
+  "tailwindCSS.experimental.classRegex": [
+    ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"],
+    ["clsx\\(([^)]*)\\)", "[\"'`]([^\"'`]*)[\"'`]"]
+  ],
+  "tailwindCSS.includeLanguages": {
+    "typescript": "javascript",
+    "typescriptreact": "javascript"
+  },
+
+  // Use the workspace TypeScript version so the Next.js plugin (declared in
+  // tsconfig.json "plugins") is active in the language server. Without this,
+  // VS Code may fall back to its bundled tsserver which ignores plugins.
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true
+}
