@@ -108,11 +108,11 @@ export default function HomePage() {
           cta="Start local game"
         />
         <ModeCard
-          title="vs AI"
-          description="Play against the computer (3 levels)"
+          title="vs Mira"
+          description="An AI rival who remembers every game"
           href="/game?mode=ai"
           icon={<Bot className="h-7 w-7" />}
-          cta="Play against AI"
+          cta="Challenge Mira"
           highlighted
         />
         <ModeCard

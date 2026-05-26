@@ -23,6 +23,8 @@ import { LastMoveLegend } from "@/components/game/LastMoveLegend";
 
 import { useLocalGame } from "@/hooks/useLocalGame";
 import { useAIGame } from "@/hooks/useAIGame";
+import { useMira } from "@/hooks/useMira";
+import { MiraOverlay } from "@/components/mira/MiraOverlay";
 import type { GameMode, Player } from "@/lib/game/types";
 
 interface SessionStats {
@@ -133,19 +135,28 @@ function GameLayout({
   };
 
   const labelX = mode === "ai" ? "You" : "Player X";
-  const labelO = mode === "ai" ? "AI" : "Player O";
+  const labelO = mode === "ai" ? "Mira" : "Player O";
+
+  // Mira: only active in AI mode. The hook is safe to call unconditionally —
+  // it just stays silent when `active` is false.
+  const mira = useMira({
+    state,
+    moveCount,
+    active: mode === "ai",
+    isAiThinking,
+  });
 
   const statusMessage = useMemo(() => {
     if (winner) {
       if (winner === "tie") return "Tie!";
-      if (mode === "ai") return winner === "X" ? "You win!" : "AI wins!";
+      if (mode === "ai") return winner === "X" ? "You win!" : "Mira wins!";
       return `Player ${winner} wins!`;
     }
     if (state.bonusTurn) {
-      const who = mode === "ai" && state.currentPlayer === "O" ? "AI" : `Player ${state.currentPlayer}`;
+      const who = mode === "ai" && state.currentPlayer === "O" ? "Mira" : `Player ${state.currentPlayer}`;
       return `${who} gets a bonus turn!`;
     }
-    if (isAiThinking) return "AI is thinking…";
+    if (isAiThinking) return "Mira is thinking…";
     if (lastErrorKind === "adjacent-to-last-move") {
       return "You can't place next to your own last move.";
     }
@@ -153,14 +164,14 @@ function GameLayout({
       return "That cell is already taken.";
     }
     if (mode === "ai") {
-      return state.currentPlayer === "X" ? "Your turn (X)" : "AI's turn";
+      return state.currentPlayer === "X" ? "Your turn (X)" : "Mira's turn";
     }
     return `Player ${state.currentPlayer}'s turn`;
   }, [winner, state.bonusTurn, state.currentPlayer, isAiThinking, lastErrorKind, mode]);
 
   const subtitle = (
     <span className="inline-flex items-center gap-2">
-      <span>{mode === "ai" ? "vs AI" : "Local game"}</span>
+      <span>{mode === "ai" ? "vs Mira" : "Local game"}</span>
       <span className="text-border">•</span>
       <span>Move #{moveCount}</span>
     </span>
@@ -195,6 +206,14 @@ function GameLayout({
             onMove={onMove}
           />
           <LastMoveLegend />
+          {mode === "ai" && (
+            <MiraOverlay
+              line={mira.currentLine}
+              voiceEnabled={mira.voiceEnabled}
+              onToggleVoice={mira.setVoiceEnabled}
+              onDismiss={mira.dismiss}
+            />
+          )}
         </div>
 
         {/* Sidebar column */}
@@ -216,7 +235,7 @@ function GameLayout({
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <StatRow label={mode === "ai" ? "You won" : "X won"} value={stats.X} />
-              <StatRow label={mode === "ai" ? "AI won" : "O won"} value={stats.O} />
+              <StatRow label={mode === "ai" ? "Mira won" : "O won"} value={stats.O} />
               <StatRow label="Ties" value={stats.ties} />
             </CardContent>
           </Card>
