@@ -14,16 +14,19 @@ import { Trophy } from "lucide-react";
 
 import { AppShell } from "@/components/layout/AppShell";
 import { TopBar } from "@/components/layout/TopBar";
-import { Board } from "@/components/game/Board";
+import { BoardRenderer } from "@/components/game/BoardRenderer";
 import { ScoreCard } from "@/components/game/ScoreCard";
 import { GameStatus } from "@/components/game/GameStatus";
 import { GameControls } from "@/components/game/GameControls";
 import { DifficultySelector } from "@/components/game/DifficultySelector";
-import { LastMoveLegend } from "@/components/game/LastMoveLegend";
 
 import { useLocalGame } from "@/hooks/useLocalGame";
 import { useAIGame } from "@/hooks/useAIGame";
-import type { GameMode, Player } from "@/lib/game/types";
+import { ACTIVE_VARIANT_IDS, getVariant } from "@/lib/game/variants";
+import type { BaseGameState, Variant, VariantId } from "@/lib/game/variants/types";
+import type { Difficulty, Player } from "@/lib/game/types";
+
+type Mode = "local" | "ai";
 
 interface SessionStats {
   X: number;
@@ -33,36 +36,52 @@ interface SessionStats {
 
 function GameContent() {
   const searchParams = useSearchParams();
-  const mode: GameMode = useMemo(() => {
+
+  const variantId = useMemo<VariantId>(() => {
+    const v = searchParams?.get("variant") as VariantId | null;
+    return v && ACTIVE_VARIANT_IDS.includes(v) ? v : "classic";
+  }, [searchParams]);
+
+  const mode: Mode = useMemo(() => {
     return searchParams?.get("mode") === "ai" ? "ai" : "local";
   }, [searchParams]);
 
-  // Conditionally use either the AI hook or the local-only hook. We render
-  // exactly one of two top-level components so React sees a stable hook order.
-  return mode === "ai" ? <AIGameView /> : <LocalGameView />;
+  const variant = useMemo(() => getVariant(variantId), [variantId]);
+
+  return mode === "ai"
+    ? <AIGameView variant={variant} />
+    : <LocalGameView variant={variant} />;
 }
 
-function LocalGameView() {
-  const game = useLocalGame();
+function LocalGameView<TState extends BaseGameState, TMove>({
+  variant,
+}: {
+  variant: Variant<TState, TMove>;
+}) {
+  const game = useLocalGame(variant);
   return (
     <GameLayout
+      variant={variant}
       mode="local"
       state={game.state}
       winner={game.winner}
       moveCount={game.moveCount}
       lastErrorKind={game.lastError?.kind}
-      // Pass the hook's stable useCallback directly so memo'd Cells don't
-      // re-render every time something unrelated changes upstream.
       onMove={game.makeMove}
       onReset={game.reset}
     />
   );
 }
 
-function AIGameView() {
-  const game = useAIGame("medium");
+function AIGameView<TState extends BaseGameState, TMove>({
+  variant,
+}: {
+  variant: Variant<TState, TMove>;
+}) {
+  const game = useAIGame(variant, "medium");
   return (
     <GameLayout
+      variant={variant}
       mode="ai"
       state={game.state}
       winner={game.winner}
@@ -78,22 +97,23 @@ function AIGameView() {
   );
 }
 
-interface GameLayoutProps {
-  mode: GameMode;
-  state: ReturnType<typeof useLocalGame>["state"];
+interface GameLayoutProps<TState extends BaseGameState, TMove> {
+  variant: Variant<TState, TMove>;
+  mode: Mode;
+  state: TState;
   winner: Player | "tie" | null;
   moveCount: number;
   lastErrorKind?: string;
-  onMove: (row: number, col: number) => void;
+  onMove: (move: TMove) => void;
   onReset: () => void;
-  // AI-only:
-  difficulty?: ReturnType<typeof useAIGame>["difficulty"];
-  onDifficultyChange?: (d: ReturnType<typeof useAIGame>["difficulty"]) => void;
+  difficulty?: Difficulty;
+  onDifficultyChange?: (d: Difficulty) => void;
   isAiThinking?: boolean;
   lockBoardForAi?: boolean;
 }
 
-function GameLayout({
+function GameLayout<TState extends BaseGameState, TMove>({
+  variant,
   mode,
   state,
   winner,
@@ -105,19 +125,17 @@ function GameLayout({
   onDifficultyChange,
   isAiThinking,
   lockBoardForAi,
-}: GameLayoutProps) {
+}: GameLayoutProps<TState, TMove>) {
   const [stats, setStats] = useState<SessionStats>({ X: 0, O: 0, ties: 0 });
-
-  // When the game finishes (winner becomes non-null), bump the corresponding
-  // session-stat counter exactly once per finished game.
   const [countedFor, setCountedFor] = useState<string | null>(null);
+
+  // Bump the session counter exactly once per finished game.
   useEffect(() => {
     if (!winner) {
-      // Reset the "counted" marker once a new game starts.
       if (state.gameActive && countedFor) setCountedFor(null);
       return;
     }
-    const key = `${winner}-${moveCount}-${state.score.X}-${state.score.O}`;
+    const key = `${variant.meta.id}-${winner}-${moveCount}-${state.score.X ?? 0}-${state.score.O ?? 0}`;
     if (countedFor === key) return;
     setStats((s) => ({
       X: s.X + (winner === "X" ? 1 : 0),
@@ -125,7 +143,13 @@ function GameLayout({
       ties: s.ties + (winner === "tie" ? 1 : 0),
     }));
     setCountedFor(key);
-  }, [winner, moveCount, state.score.X, state.score.O, state.gameActive, countedFor]);
+  }, [winner, moveCount, state.score, state.gameActive, countedFor, variant.meta.id]);
+
+  // Reset session stats when the variant changes — they're per-variant.
+  useEffect(() => {
+    setStats({ X: 0, O: 0, ties: 0 });
+    setCountedFor(null);
+  }, [variant.meta.id]);
 
   const handleReset = () => {
     onReset();
@@ -141,7 +165,9 @@ function GameLayout({
       if (mode === "ai") return winner === "X" ? "You win!" : "AI wins!";
       return `Player ${winner} wins!`;
     }
-    if (state.bonusTurn) {
+    // bonusTurn is Classic-only; safe optional access through a type assertion.
+    const bonusTurn = (state as unknown as { bonusTurn?: boolean }).bonusTurn;
+    if (bonusTurn) {
       const who = mode === "ai" && state.currentPlayer === "O" ? "AI" : `Player ${state.currentPlayer}`;
       return `${who} gets a bonus turn!`;
     }
@@ -156,15 +182,24 @@ function GameLayout({
       return state.currentPlayer === "X" ? "Your turn (X)" : "AI's turn";
     }
     return `Player ${state.currentPlayer}'s turn`;
-  }, [winner, state.bonusTurn, state.currentPlayer, isAiThinking, lastErrorKind, mode]);
+  }, [winner, state, isAiThinking, lastErrorKind, mode]);
 
   const subtitle = (
     <span className="inline-flex items-center gap-2">
-      <span>{mode === "ai" ? "vs AI" : "Local game"}</span>
+      <span>{variant.meta.name}</span>
+      <span className="text-border">•</span>
+      <span>{mode === "ai" ? "vs AI" : "Local"}</span>
       <span className="text-border">•</span>
       <span>Move #{moveCount}</span>
     </span>
   );
+
+  // Classic-only score shape narrows safely; for other variants the score is
+  // Record<string, number> and X/O entries default to 0 if absent.
+  const score = {
+    X: state.score.X ?? 0,
+    O: state.score.O ?? 0,
+  };
 
   return (
     <AppShell>
@@ -183,24 +218,19 @@ function GameLayout({
       />
 
       <div className="grid lg:grid-cols-[1fr_18rem] gap-6 lg:gap-8 items-start">
-        {/* Board column */}
         <div className="space-y-4">
           <GameStatus message={statusMessage} winner={winner} />
-          <Board
-            board={state.board}
-            lastMove={state.lastMove}
-            currentPlayer={state.currentPlayer}
-            gameActive={state.gameActive}
+          <BoardRenderer
+            variant={variant}
+            state={state}
             locked={Boolean(lockBoardForAi) || Boolean(isAiThinking)}
             onMove={onMove}
           />
-          <LastMoveLegend />
         </div>
 
-        {/* Sidebar column */}
         <aside className="space-y-4">
           <ScoreCard
-            score={state.score}
+            score={score}
             currentPlayer={state.currentPlayer}
             gameActive={state.gameActive}
             labelX={labelX}

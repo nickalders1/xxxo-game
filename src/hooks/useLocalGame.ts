@@ -1,47 +1,68 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  applyMove,
-  createInitialState,
-  getWinner,
-  resolveTurnStart,
-} from "@/lib/game/rules";
-import type { GameState, MoveError, Player } from "@/lib/game/types";
 import { lightHaptic, notificationHaptic } from "@/lib/native";
+import type { Player } from "@/lib/game/types";
+import type {
+  BaseGameState,
+  MoveError,
+  Variant,
+} from "@/lib/game/variants/types";
 
 const ERROR_MESSAGE_TIMEOUT_MS = 1500;
 
-export interface UseLocalGameResult {
-  state: GameState;
-  /** True if the game is still being played (no winner yet, not in resolved bonus-end state). */
+export interface UseLocalGameResult<TState extends BaseGameState, TMove> {
+  state: TState;
+  /** True while a move can still be made. */
   canMove: boolean;
   /** Winner of the game if it's finished, else null. */
   winner: Player | "tie" | null;
-  /** Last attempted move that was rejected; null otherwise. Cleared on next successful move. */
+  /** Last rejected move's error; auto-clears after 1.5s. */
   lastError: MoveError | null;
-  /** Move count so far (X and O combined). */
+  /** Total moves played so far. */
   moveCount: number;
-  makeMove: (row: number, col: number) => boolean;
+  /** Attempt a move. Returns true if accepted. */
+  makeMove: (move: TMove) => boolean;
   reset: () => void;
-  /** Manually mark a bonus turn as active (testing/online sync). */
-  setState: (next: GameState) => void;
+  /** Direct state setter — for online sync or testing. */
+  setState: (next: TState) => void;
+}
+
+function getWinnerFromScore<TState extends BaseGameState>(
+  variant: Variant<TState, unknown>,
+  state: TState,
+): Player | "tie" | null {
+  if (state.gameActive) return null;
+  const players = variant.getPlayers(state);
+  let best: Player | null = null;
+  let bestScore = -Infinity;
+  let tied = false;
+  for (const p of players) {
+    const s = state.score[p] ?? 0;
+    if (s > bestScore) {
+      best = p;
+      bestScore = s;
+      tied = false;
+    } else if (s === bestScore) {
+      tied = true;
+    }
+  }
+  if (tied || best === null) return "tie";
+  return best;
 }
 
 /**
- * Local 2-player game state holder. Pure wrapper around `lib/game/rules.applyMove`.
+ * Generic local 2-player hook. Takes a Variant module and drives state through
+ * its pure functions. Same UI hook works for every variant.
  *
- * Handles three meta-state transitions on top of `applyMove`:
- * - Detects when a player at the start of their turn has no moves but the
- *   opponent does → auto-flips to `bonusTurn: true` with the opponent as
- *   currentPlayer.
- * - Detects game-end at turn start (no points possible anymore).
- * - Tracks move count for display purposes.
+ * Side-effects: triggers haptics on successful moves and on game end (no-op on
+ * web; light vibration on Capacitor native).
  */
-export function useLocalGame(): UseLocalGameResult {
-  const [state, setState] = useState<GameState>(() => createInitialState());
+export function useLocalGame<TState extends BaseGameState, TMove>(
+  variant: Variant<TState, TMove>,
+): UseLocalGameResult<TState, TMove> {
+  const [state, setState] = useState<TState>(() => variant.createInitialState());
   const [lastError, setLastError] = useState<MoveError | null>(null);
-  const [moveCount, setMoveCount] = useState(0);
   const errorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Auto-clear lastError after a short delay so the status banner reverts to
@@ -61,61 +82,60 @@ export function useLocalGame(): UseLocalGameResult {
     };
   }, [lastError]);
 
-  const winner = useMemo<Player | "tie" | null>(() => {
-    if (state.gameActive) return null;
-    return getWinner(state.score);
-  }, [state.gameActive, state.score]);
+  // Re-create initial state when the variant changes (navigating between
+  // variant tabs would otherwise carry stale state).
+  useEffect(() => {
+    setState(variant.createInitialState());
+    setLastError(null);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [variant.meta.id]);
 
+  const winner = useMemo(() => getWinnerFromScore(variant, state), [variant, state]);
   const canMove = state.gameActive;
 
   const makeMove = useCallback(
-    (row: number, col: number): boolean => {
-      const outcome = applyMove(state, row, col);
+    (move: TMove): boolean => {
+      const outcome = variant.applyMove(state, move);
       if (!outcome.ok) {
         setLastError(outcome.error);
         return false;
       }
       setLastError(null);
-      setMoveCount((n) => n + 1);
       void lightHaptic();
 
-      let nextState = outcome.result.state;
+      let next = outcome.result.state;
 
-      // After the move, if the new current player has no moves but the
-      // other still does, flip into bonus-turn mode.
-      if (nextState.gameActive) {
-        const action = resolveTurnStart(nextState);
+      // After the move, ask the variant whether the next turn should pass
+      // through normally, flip into a bonus turn, or end the game.
+      if (next.gameActive) {
+        const action = variant.resolveTurnStart(next);
         if (action.kind === "end") {
-          nextState = { ...nextState, gameActive: false };
+          next = { ...next, gameActive: false };
         } else if (action.kind === "bonus") {
-          nextState = {
-            ...nextState,
-            bonusTurn: true,
-            currentPlayer: action.player,
-          };
+          // Classic exposes bonusTurn + currentPlayer through TState;
+          // variants without bonus mechanics will never produce this case.
+          next = { ...next, currentPlayer: action.player, bonusTurn: true } as TState;
         }
       }
 
-      if (!nextState.gameActive) void notificationHaptic();
-
-      setState(nextState);
+      if (!next.gameActive) void notificationHaptic();
+      setState(next);
       return true;
     },
-    [state],
+    [state, variant],
   );
 
   const reset = useCallback(() => {
-    setState(createInitialState());
+    setState(variant.createInitialState());
     setLastError(null);
-    setMoveCount(0);
-  }, []);
+  }, [variant]);
 
   return {
     state,
     canMove,
     winner,
     lastError,
-    moveCount,
+    moveCount: state.turnNumber,
     makeMove,
     reset,
     setState,

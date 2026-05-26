@@ -351,7 +351,9 @@ const META: VariantMeta = {
   maxPlayers: 2,
   supportsLocal: true,
   supportsAi: true,
-  supportsOnline: true,
+  // Online wiring lives in socket-server.js and only supports Classic state
+  // for now. Will flip to true once the server-side variant dispatch lands.
+  supportsOnline: false,
 };
 
 function otherPlayer(p: Player): Player {
