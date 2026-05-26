@@ -6,6 +6,7 @@ import {
   type MiraProfile,
   loadProfile,
   pickLine,
+  preloadVoices,
   recordGameFinished,
   saveProfile,
   speak,
@@ -51,8 +52,11 @@ export function useMira({
   const finishedRef = useRef(false);
 
   // Hydrate the voice preference on the client (avoid SSR localStorage access).
+  // Also kick off voice loading immediately so the browser's TTS engine has
+  // its voice list ready by the time Mira's greeting fires ~400ms later.
   useEffect(() => {
     setVoiceEnabledState(getVoiceEnabled());
+    preloadVoices();
   }, []);
 
   const say = useCallback(

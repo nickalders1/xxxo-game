@@ -22,4 +22,6 @@ export {
   setVoiceEnabled,
   speak,
   cancelSpeech,
+  preloadVoices,
+  debugVoices,
 } from "./voice";
