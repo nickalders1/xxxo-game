@@ -1,5 +1,4 @@
 import withSerwistInit from "@serwist/next";
-import withBundleAnalyzerInit from "@next/bundle-analyzer";
 import type { NextConfig } from "next";
 
 const withSerwist = withSerwistInit({
@@ -12,9 +11,16 @@ const withSerwist = withSerwistInit({
   reloadOnOnline: true,
 });
 
-const withBundleAnalyzer = withBundleAnalyzerInit({
-  enabled: process.env.ANALYZE === "true",
-});
+// Bundle analyzer lives in devDependencies (it pulls in webpack-bundle-analyzer
+// which is large). On production VMs that install with --omit=dev or
+// --production, the package is absent — so we only require it when actually
+// running an analysis. With ANALYZE=false (or unset) this stays a no-op
+// passthrough and Node never touches the module.
+const withBundleAnalyzer: (config: NextConfig) => NextConfig =
+  process.env.ANALYZE === "true"
+    ? // eslint-disable-next-line @typescript-eslint/no-require-imports
+      require("@next/bundle-analyzer")({ enabled: true })
+    : (config: NextConfig) => config;
 
 const nextConfig: NextConfig = {
   devIndicators: false,
