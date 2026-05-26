@@ -1,13 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { chooseAiMove } from "@/lib/game/ai";
 import { AI_THINK_DELAY_MS } from "@/lib/game/constants";
-import type { Difficulty, Player } from "@/lib/game/types";
-import type { BaseGameState, MoveError, Variant } from "@/lib/game/variants/types";
+import type { Difficulty, MoveError, Player } from "@/lib/game/types";
 import { useLocalGame } from "./useLocalGame";
 
-export interface UseAIGameResult<TState extends BaseGameState, TMove> {
-  state: TState;
+export interface UseAIGameResult {
+  state: ReturnType<typeof useLocalGame>["state"];
   canMove: boolean;
   winner: Player | "tie" | null;
   lastError: MoveError | null;
@@ -16,25 +16,18 @@ export interface UseAIGameResult<TState extends BaseGameState, TMove> {
   setDifficulty: (d: Difficulty) => void;
   isAiThinking: boolean;
   /** Player should be "X". Returns true if the move was accepted. */
-  makeMove: (move: TMove) => boolean;
+  makeMove: (row: number, col: number) => boolean;
   reset: () => void;
 }
 
-const HUMAN_PLAYER: Player = "X";
-const AI_PLAYER: Player = "O";
-
 /**
- * Generic AI game hook — human always plays X, AI plays O. Delegates state to
- * useLocalGame and adds a scheduled AI turn via the variant's chooseAiMove.
+ * AI game hook. The human always plays X, AI plays O.
  *
- * The pending AI move is cancelled on unmount, reset, and variant change so
- * we never apply a stale move to a fresh board.
+ * The AI move is scheduled via setTimeout (delay varies by difficulty) and is
+ * cancelled automatically if the game is reset or the component unmounts.
  */
-export function useAIGame<TState extends BaseGameState, TMove>(
-  variant: Variant<TState, TMove>,
-  initialDifficulty: Difficulty = "medium",
-): UseAIGameResult<TState, TMove> {
-  const game = useLocalGame(variant);
+export function useAIGame(initialDifficulty: Difficulty = "medium"): UseAIGameResult {
+  const game = useLocalGame();
   const [difficulty, setDifficulty] = useState<Difficulty>(initialDifficulty);
   const [isAiThinking, setIsAiThinking] = useState(false);
   const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -47,30 +40,38 @@ export function useAIGame<TState extends BaseGameState, TMove>(
     setIsAiThinking(false);
   }, []);
 
+  // Drive the AI: whenever it's O's turn in an active game, schedule a move.
   useEffect(() => {
     if (!game.state.gameActive) return;
-    if (game.state.currentPlayer !== AI_PLAYER) return;
+    if (game.state.currentPlayer !== "O") return;
     if (isAiThinking) return;
 
     setIsAiThinking(true);
     aiTimerRef.current = setTimeout(() => {
-      const move = variant.chooseAiMove(game.state, AI_PLAYER, difficulty);
+      const move = chooseAiMove({
+        board: game.state.board,
+        lastMove: game.state.lastMove,
+        score: game.state.score,
+        difficulty,
+      });
       aiTimerRef.current = null;
       setIsAiThinking(false);
-      if (move) game.makeMove(move);
+      if (move) {
+        game.makeMove(move.row, move.col);
+      }
     }, AI_THINK_DELAY_MS[difficulty]());
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [game.state.currentPlayer, game.state.gameActive, game.state.turnNumber, difficulty, variant.meta.id]);
+  }, [
+    game.state.currentPlayer,
+    game.state.gameActive,
+    game.state.board,
+    game.state.lastMove,
+    difficulty,
+  ]);
 
-  // Cancel anything pending on unmount or variant swap.
   useEffect(() => {
     return () => cancelPendingAi();
   }, [cancelPendingAi]);
-
-  useEffect(() => {
-    cancelPendingAi();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [variant.meta.id]);
 
   const reset = useCallback(() => {
     cancelPendingAi();
@@ -78,17 +79,18 @@ export function useAIGame<TState extends BaseGameState, TMove>(
   }, [cancelPendingAi, game]);
 
   const makeMove = useCallback(
-    (move: TMove): boolean => {
-      if (game.state.currentPlayer !== HUMAN_PLAYER) return false;
+    (row: number, col: number): boolean => {
+      // Block human moves when it's AI's turn.
+      if (game.state.currentPlayer !== "X") return false;
       if (isAiThinking) return false;
-      return game.makeMove(move);
+      return game.makeMove(row, col);
     },
     [game, isAiThinking],
   );
 
   return {
     state: game.state,
-    canMove: game.canMove && game.state.currentPlayer === HUMAN_PLAYER && !isAiThinking,
+    canMove: game.canMove && game.state.currentPlayer === "X" && !isAiThinking,
     winner: game.winner,
     lastError: game.lastError,
     moveCount: game.moveCount,
